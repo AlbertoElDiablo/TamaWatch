@@ -1,0 +1,293 @@
+import Toybox.Graphics;
+import Toybox.Lang;
+import Toybox.WatchUi;
+
+// TamaPoke's gym screens, scaled 466 -> 280:
+//   stage 0 "GYMS": the region row with its badge tally, and LINK BATTLE (TamaPoke's LAN BATTLE)
+//   stage 1 "KANTO GYMS": the EASY / HARD pill and one row per trainer (name, town or LOCKED,
+//   "Lv.12 x2" = top level x team size); a trainer opens once the one before is beaten.
+class GymView extends WatchUi.View {
+    var model;
+    var petView;
+    var stage = 0;
+    var sel = 0;          // stage 0: 0 region, 1 link; stage 1: 0 pill, 1.. trainers
+    var top = 0;
+    var hard = false;
+    var trainers = null;
+    const BG = 0xFFFFFF;
+    const INK = 0x000000;
+    const TRACK = 0xAAAAAA;
+
+    function initialize(m, pv) {
+        View.initialize();
+        model = m;
+        petView = pv;
+    }
+
+    function onShow() { trainers = WatchUi.loadResource(Rez.JsonData.trainers); }
+    function onHide() { trainers = null; }
+
+    function rowBox(dc, x, y, w, h, on, fill) {
+        dc.setColor(fill, Graphics.COLOR_TRANSPARENT);
+        dc.fillRoundedRectangle(x, y, w, h, 7);
+        dc.setColor(on ? 0xFF0000 : INK, Graphics.COLOR_TRANSPARENT);
+        dc.setPenWidth(on ? 3 : 1);
+        dc.drawRoundedRectangle(x, y, w, h, 7);
+        dc.setPenWidth(1);
+    }
+
+    function onUpdate(dc) {
+
+        dc = Scr.wrap(dc);              // any screen size: see Sdc.mc
+        var cx = dc.getWidth() / 2;
+        dc.setColor(0x000000, 0x000000);
+        dc.clear();
+        dc.setColor(BG, Graphics.COLOR_TRANSPARENT);
+        dc.fillRectangle(0, 0, dc.getWidth(), dc.getHeight());   // the background fills the screen
+        dc.setColor(INK, Graphics.COLOR_TRANSPARENT);
+        if (stage == 0) {
+            dc.drawText(cx, 34, UiFont.mid(), Tr.t("GYMS"), Graphics.TEXT_JUSTIFY_CENTER);
+            rowBox(dc, Fit.COL_X, 76, Fit.COL_W, 38, sel == 0, BG);
+            dc.setColor(INK, Graphics.COLOR_TRANSPARENT);
+            dc.drawText(Fit.COL_X + 10, capY(UiFont.small(), 95), UiFont.small(), Tr.t("KANTO"), Graphics.TEXT_JUSTIFY_LEFT);
+            dc.setColor(TEXT_GREY, Graphics.COLOR_TRANSPARENT);
+            var bc = Tr.t("BADGES ") + model.badgeCount(false) + "/8";       // just the count if the word won't fit
+            var room = Fit.COL_W - 28 - dc.getTextWidthInPixels("KANTO", UiFont.small());
+            if (dc.getTextWidthInPixels(bc, UiFont.tiny()) > room) { bc = model.badgeCount(false) + "/8"; }
+            dc.drawText(Fit.COL_X + Fit.COL_W - 10, capY(UiFont.tiny(), 95), UiFont.tiny(), bc, Graphics.TEXT_JUSTIFY_RIGHT);
+            rowBox(dc, Fit.COL_X, 126, Fit.COL_W, 38, sel == 1, BG);
+            dc.setColor(INK, Graphics.COLOR_TRANSPARENT);
+            centerText(dc, Fit.COL_X, 126, Fit.COL_W, 38, UiFont.mid(), Tr.t("LINK BATTLE"));
+            dc.setColor(TEXT_GREY, Graphics.COLOR_TRANSPARENT);
+            dc.drawText(cx, 236, UiFont.tiny(), Tr.t("BACK"), Graphics.TEXT_JUSTIFY_CENTER);
+            return;
+        }
+        var gt = Tr.t("KANTO GYMS");                     // a size smaller if the language needs it
+        var gf = Fit.font(dc, gt, 176, [UiFont.mid(), UiFont.small(), UiFont.tiny()]);
+        dc.drawText(cx, 24, gf, Fit.trim(dc, gt, 176, gf), Graphics.TEXT_JUSTIFY_CENTER);
+        rowBox(dc, cx - 38, 58, 76, 22, sel == 0, TRACK);
+        dc.setColor(INK, Graphics.COLOR_TRANSPARENT);
+        centerText(dc, cx - 38, 58, 76, 22, UiFont.tiny(), hard ? Tr.t("HARD") : Tr.t("EASY"));
+        var visible = 4;
+        var ti = sel - 1;
+        if (ti >= 0) {
+            if (ti < top) { top = ti; }
+            if (ti >= top + visible) { top = ti - visible + 1; }
+        }
+        for (var k = 0; k < visible; k++) {
+            var i = top + k;
+            if (i >= trainers.size()) { break; }
+            var t = trainers[i];
+            var tired = hard && lowBattery(model);       // hard gyms wait for your Body Battery
+            var open = model.trainerUnlocked(i, hard) && !tired;
+            var y = 85 + k * 37;
+            rowBox(dc, Fit.COL_X, y, Fit.COL_W, 35, sel == i + 1, BG);
+            dc.setColor(open ? INK : TEXT_GREY, Graphics.COLOR_TRANSPARENT);
+            var done = model.hasBadge(i, hard) ? " *" : "";
+            dc.drawText(Fit.COL_X + 8, capY(UiFont.tiny(), y + 10), UiFont.tiny(), t[0] + done, Graphics.TEXT_JUSTIFY_LEFT);
+            dc.setColor(TEXT_GREY, Graphics.COLOR_TRANSPARENT);
+            dc.drawText(Fit.COL_X + 8, capY(UiFont.tiny(), y + 25), UiFont.tiny(), open ? t[1].toUpper() : (tired ? Tr.t("LOW BODY BATTERY") : Tr.t("LOCKED")), Graphics.TEXT_JUSTIFY_LEFT);
+            var team = t[4];
+            var lv = 0;
+            for (var j = 0; j < team.size(); j++) { if (team[j][1] > lv) { lv = team[j][1]; } }
+            if (!tired) {                                   // closed for Body Battery: just the warning
+                dc.setColor(open ? INK : TEXT_GREY, Graphics.COLOR_TRANSPARENT);
+                dc.drawText(Fit.COL_X + Fit.COL_W - 8, capY(UiFont.tiny(), y + 25), UiFont.tiny(), Tr.t("Lv.") + lv + " x" + team.size(), Graphics.TEXT_JUSTIFY_RIGHT);
+            }
+        }
+        dc.setColor(TEXT_GREY, Graphics.COLOR_TRANSPARENT);
+        dc.drawText(cx, 238, UiFont.tiny(), (top / visible + 1) + "/" + ((trainers.size() + visible - 1) / visible) + Tr.t("   BACK"), Graphics.TEXT_JUSTIFY_CENTER);
+    }
+}
+
+class GymDelegate2 extends WatchUi.BehaviorDelegate {
+    var v;
+
+    function initialize(view) {
+        BehaviorDelegate.initialize();
+        v = view;
+    }
+
+    function count() { return v.stage == 0 ? 2 : v.trainers.size() + 1; }
+    function onNextPage() { v.sel = (v.sel + 1) % count(); WatchUi.requestUpdate(); return true; }
+    function onPreviousPage() { v.sel = (v.sel - 1 + count()) % count(); WatchUi.requestUpdate(); return true; }
+
+    function onSelect() {
+        if (v.stage == 0) {
+            if (v.sel == 0) { v.stage = 1; v.sel = 1; v.top = 0; }
+            else {
+                var lv = new LinkView(v.model, v.petView);
+                WatchUi.switchToView(lv, new LinkDelegate(lv), WatchUi.SLIDE_LEFT);
+                return true;
+            }
+        } else if (v.sel == 0) {
+            v.hard = !v.hard;
+        } else {
+            var idx = v.sel - 1;
+            if (v.hard && lowBattery(v.model)) {
+                // greyed out: say why in a pop-up
+                var pv = new PanelView(Tr.t("HARD"), [[Tr.t("OK"), :close, 0, -1]],
+                                       Tr.f("Body Battery {0}%: hard gyms need over 20%", [v.model.bbNow]));
+                WatchUi.pushView(pv, new PanelDelegate(pv, null), WatchUi.SLIDE_UP);
+                return true;
+            }
+            if (!v.model.trainerUnlocked(idx, v.hard)) { return true; }   // locked: nothing
+            if (v.model.party.size() == 0) {
+                var bv = new BattleView(v.model, v.petView, 0, 0, idx, v.hard, 0xFFFF);
+                WatchUi.switchToView(bv, new BattleDelegate(bv), WatchUi.SLIDE_UP);
+            } else {
+                var pk = new PickView(v.model, v.petView, idx, v.hard, v.trainers[idx]);
+                WatchUi.switchToView(pk, new PickDelegate(pk), WatchUi.SLIDE_LEFT);
+            }
+            return true;
+        }
+        WatchUi.requestUpdate();
+        return true;
+    }
+
+    function onBack() {
+        if (v.stage == 1) { v.stage = 0; v.sel = 0; WatchUi.requestUpdate(); return true; }
+        WatchUi.popView(WatchUi.SLIDE_DOWN);
+        return true;
+    }
+}
+
+// TamaPoke's team pick: the trainer and its team as the title, CHOSEN n/6, cards of your pet and
+// party (thumbnail, name, level, types, a tick when chosen), and BACK / FIGHT.
+class PickView extends WatchUi.View {
+    var model;
+    var petView;
+    var trainer;
+    var hard;
+    var row;
+    var mask = 0;
+    var sel = 0;          // cards, then BACK, then FIGHT
+    var thumbs = null;
+    var cards = [];       // [dex, name, level, shiny]
+
+    function initialize(m, pv, idx, isHard, trainerRow) {
+        View.initialize();
+        model = m;
+        petView = pv;
+        trainer = idx;
+        hard = isHard;
+        row = trainerRow;
+        cards.add([m.dex, m.name(), m.level(), m.shiny]);
+        for (var i = 0; i < m.party.size() && cards.size() < 7; i++) {
+            var p = m.party[i];
+            cards.add([p[0], m.memberName(p), p[3], p[2]]);
+        }
+        for (var i = 0; i < cards.size() && i < 6; i++) { mask |= 1 << i; }
+    }
+
+    function onShow() { thumbs = true; }              // loaded one by one (Thumbs)
+    function onHide() { thumbs = null; Thumbs.clear(); }
+
+    function chosen() {
+        var n = 0;
+        for (var i = 0; i < cards.size(); i++) { if ((mask >> i) & 1) { n++; } }
+        return n;
+    }
+
+    function onUpdate(dc) {
+
+        dc = Scr.wrap(dc);              // any screen size: see Sdc.mc
+        var cx = dc.getWidth() / 2;
+        dc.setColor(0x000000, 0x000000);
+        dc.clear();
+        dc.setColor(0xFFFFFF, Graphics.COLOR_TRANSPARENT);
+        dc.fillRectangle(0, 0, dc.getWidth(), dc.getHeight());   // the background fills the screen
+        var team = row[4];
+        var lv = 0;
+        for (var j = 0; j < team.size(); j++) { if (team[j][1] > lv) { lv = team[j][1]; } }
+        dc.setColor(0x000000, Graphics.COLOR_TRANSPARENT);
+        dc.drawText(cx, 20, UiFont.small(), row[0] + Tr.t(" Lv.") + lv + " x" + team.size(), Graphics.TEXT_JUSTIFY_CENTER);
+        dc.setColor(TEXT_GREY, Graphics.COLOR_TRANSPARENT);
+        dc.drawText(cx, 40, UiFont.tiny(), Tr.t("CHOSEN ") + chosen() + "/6", Graphics.TEXT_JUSTIFY_CENTER);
+        var first = sel < cards.size() ? (sel / 6) * 6 : 0;
+        for (var k = 0; k < 6; k++) {
+            var i = first + k;
+            if (i >= cards.size()) { break; }
+            var c = cards[i];
+            var x = 46 + (k % 2) * 96;
+            var y = 58 + (k / 2) * 46;
+            dc.setColor(0xFFFFFF, Graphics.COLOR_TRANSPARENT);
+            dc.fillRoundedRectangle(x, y, 92, 42, 6);
+            dc.setColor(sel == i ? 0xFF0000 : 0x000000, Graphics.COLOR_TRANSPARENT);
+            dc.setPenWidth(sel == i ? 3 : 1);
+            dc.drawRoundedRectangle(x, y, 92, 42, 6);
+            dc.setPenWidth(1);
+            var n = c[0];
+            dc.setClip(x + 1, y + 2, 38, 38);
+            Thumbs.draw(dc, n, x + 1, y + 2, false);
+            dc.clearClip();
+            dc.setColor(0x000000, Graphics.COLOR_TRANSPARENT);
+            var nm = c[1].toUpper();
+            if (nm.length() > 8) { nm = nm.substring(0, 8); }
+            dc.drawText(x + 40, y + 1, UiFont.tiny(), nm, Graphics.TEXT_JUSTIFY_LEFT);
+            dc.drawText(x + 40, y + 13, UiFont.tiny(), Tr.t("Lv.") + c[2] + (c[3] ? " *" : ""), Graphics.TEXT_JUSTIFY_LEFT);
+            var r = Dex.row(n);
+            dc.setColor(Moves.typeColor(r[10]), Graphics.COLOR_TRANSPARENT);
+            dc.drawText(x + 40, y + 25, UiFont.tiny(), Moves.typeName(r[10]), Graphics.TEXT_JUSTIFY_LEFT);
+            if ((mask >> i) & 1) {
+                dc.setColor(0x00AA00, Graphics.COLOR_TRANSPARENT);
+                dc.fillCircle(x + 83, y + 32, 6);
+                dc.setColor(0xFFFFFF, Graphics.COLOR_TRANSPARENT);
+                dc.drawLine(x + 80, y + 32, x + 82, y + 35);
+                dc.drawLine(x + 82, y + 35, x + 87, y + 29);
+            }
+        }
+        var bSel = sel == cards.size();
+        var fSel = sel == cards.size() + 1;
+        dc.setColor(0xAAAAAA, Graphics.COLOR_TRANSPARENT);
+        dc.fillRoundedRectangle(52, 200, 82, 26, 7);
+        dc.setColor(0x55FF55, Graphics.COLOR_TRANSPARENT);
+        dc.fillRoundedRectangle(146, 200, 82, 26, 7);
+        dc.setColor(bSel ? 0xFF0000 : 0x000000, Graphics.COLOR_TRANSPARENT);
+        dc.setPenWidth(bSel ? 3 : 1);
+        dc.drawRoundedRectangle(52, 200, 82, 26, 7);
+        dc.setColor(fSel ? 0xFF0000 : 0x000000, Graphics.COLOR_TRANSPARENT);
+        dc.setPenWidth(fSel ? 3 : 1);
+        dc.drawRoundedRectangle(146, 200, 82, 26, 7);
+        dc.setPenWidth(1);
+        dc.setColor(0x000000, Graphics.COLOR_TRANSPARENT);
+        dc.drawText(93, 203, UiFont.tiny(), Tr.t("BACK"), Graphics.TEXT_JUSTIFY_CENTER);
+        dc.drawText(187, 203, UiFont.tiny(), Tr.t("FIGHT"), Graphics.TEXT_JUSTIFY_CENTER);
+    }
+}
+
+class PickDelegate extends WatchUi.BehaviorDelegate {
+    var v;
+
+    function initialize(view) {
+        BehaviorDelegate.initialize();
+        v = view;
+    }
+
+    function count() { return v.cards.size() + 2; }
+    function onNextPage() { v.sel = (v.sel + 1) % count(); WatchUi.requestUpdate(); return true; }
+    function onPreviousPage() { v.sel = (v.sel - 1 + count()) % count(); WatchUi.requestUpdate(); return true; }
+
+    function onSelect() {
+        if (v.sel < v.cards.size()) {
+            var bit = 1 << v.sel;
+            if ((v.mask & bit) != 0) { v.mask &= ~bit; }
+            else if (v.chosen() < 6) { v.mask |= bit; }
+        } else if (v.sel == v.cards.size()) {
+            WatchUi.popView(WatchUi.SLIDE_DOWN);
+            return true;
+        } else if (v.chosen() > 0) {
+            var bv = new BattleView(v.model, v.petView, 0, 0, v.trainer, v.hard, v.mask);
+            WatchUi.switchToView(bv, new BattleDelegate(bv), WatchUi.SLIDE_UP);
+            return true;
+        }
+        WatchUi.requestUpdate();
+        return true;
+    }
+
+    function onBack() { WatchUi.popView(WatchUi.SLIDE_DOWN); return true; }
+}
+
+// Hard gyms need some energy in you: with your Body Battery at 20% or less they are closed
+// (greyed out, and START says why). Unknown Body Battery never closes them.
+function lowBattery(m) { return m.bbNow >= 0 && m.bbNow <= 20; }

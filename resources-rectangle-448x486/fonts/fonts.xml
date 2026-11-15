@@ -1,0 +1,8 @@
+<fonts>
+    <font scope="application" id="f0" filename="f0.fnt" antialias="true"/>
+    <font scope="application" id="f1" filename="f1.fnt" antialias="true"/>
+    <font scope="application" id="f2" filename="f2.fnt" antialias="true"/>
+    <font scope="application" id="f3" filename="f3.fnt" antialias="true"/>
+    <font scope="application" id="f4" filename="f4.fnt" antialias="true"/>
+    <font scope="application" id="f5" filename="f5.fnt" antialias="true"/>
+</fonts>

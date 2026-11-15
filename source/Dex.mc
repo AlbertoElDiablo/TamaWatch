@@ -1,0 +1,31 @@
+import Toybox.Lang;
+import Toybox.WatchUi;
+
+// Kanto species table (generated from TamaPoke's dex.h by tools/make_dex.py).
+// Row: [evolvesTo, evolveLevel, rarity, hp, atk, def, spe, spa, spd, biome, type1, type2]
+module Dex {
+
+    const R_EVO = 0;
+    const R_COMMON = 1;
+    const R_RARE = 2;
+    const R_LEGEND = 3;
+    const EEVEE = 133;
+    const EEVEE_EVOS = [134, 135, 136];   // the Kanto three
+    const STARTERS = [1, 4, 7];
+    const COUNT = 151;
+
+    var table = null;
+
+    function rows() {
+        if (table == null) { table = WatchUi.loadResource(Rez.JsonData.dex); }
+        return table;
+    }
+
+    function row(n) {
+        return rows()[n - 1];
+    }
+
+    function evolvesTo(n) { return row(n)[0]; }
+    function evolveLevel(n) { return row(n)[1]; }
+    function rarity(n) { return row(n)[2]; }
+}

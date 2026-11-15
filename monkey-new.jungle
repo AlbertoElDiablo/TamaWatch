@@ -1,0 +1,4 @@
+# Watches with Connect IQ 5.1+: widgets and apps are one kind there (the glance still shows), and
+# an app may post notifications with its own, translated buttons
+project.manifest = manifest-new.xml
+base.excludeAnnotations = nonotif

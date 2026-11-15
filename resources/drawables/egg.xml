@@ -1,0 +1,4 @@
+<drawables>
+    <bitmap scope="application" id="egg" filename="egg/egg.png"><palette disableTransparency="false"><color>000000</color><color>00AA00</color><color>FFAA00</color><color>FFFF55</color></palette></bitmap>
+    <bitmap scope="application" id="egg_small" filename="egg/egg_small.png"><palette disableTransparency="false"><color>000000</color><color>00AA00</color><color>FFAA00</color><color>FFFF55</color></palette></bitmap>
+</drawables>

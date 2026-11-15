@@ -1,0 +1,3 @@
+# The watches that give a widget too little memory (512 KB) but an app 1 MB: TamaWatch as an app
+project.manifest = manifest-app.xml
+base.excludeAnnotations = notif

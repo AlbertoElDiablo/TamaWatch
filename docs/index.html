@@ -1,0 +1,211 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>TamaWatch</title>
+<meta name="description" content="A virtual pet for Garmin watches that grows with how active you are. Free download for 105 watches.">
+<style>
+  :root {
+    --bg: #f6f4ef; --card: #ffffff; --ink: #1d1b16; --muted: #5d5a52; --line: #e3dfd5;
+    --accent: #d8402c; --accent-ink: #ffffff; --soft: #fbe9e5; --ok: #2f7d32; --code: #f0ede5;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root { --bg: #15140f; --card: #1f1d17; --ink: #f1eee6; --muted: #b3ae9f; --line: #34312a;
+            --accent: #ef5a44; --accent-ink: #ffffff; --soft: #3a201b; --ok: #7cc47f; --code: #2a2821; }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--ink);
+         font: 16px/1.55 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
+  main { max-width: 760px; margin: 0 auto; padding: 32px 16px 64px; }
+  header { margin-bottom: 28px; }
+  h1 { font-size: 40px; line-height: 1.1; margin: 0 0 8px; letter-spacing: -0.5px; }
+  h2 { font-size: 20px; margin: 0 0 12px; }
+  .lead { font-size: 18px; color: var(--muted); margin: 0; }
+  .card { background: var(--card); border: 1px solid var(--line); border-radius: 14px;
+          padding: 20px; margin: 16px 0; }
+  .step { display: flex; gap: 14px; }
+  .num { flex: none; width: 30px; height: 30px; border-radius: 50%; background: var(--accent);
+         color: var(--accent-ink); font-weight: 700; display: grid; place-items: center; }
+  .step > div { flex: 1; min-width: 0; }
+  select { width: 100%; font: inherit; padding: 12px 14px; border-radius: 10px; margin-top: 8px;
+         border: 1px solid var(--line); background: var(--bg); color: var(--ink); }
+  .btn { display: inline-block; background: var(--accent); color: var(--accent-ink);
+         text-decoration: none; font-weight: 700; padding: 12px 20px; border-radius: 10px; }
+  .btn[aria-disabled=true] { opacity: .45; pointer-events: none; }
+  .tabs { display: flex; gap: 8px; margin: 4px 0 12px; flex-wrap: wrap; }
+  .tabs button { font: inherit; padding: 8px 14px; border-radius: 999px; cursor: pointer;
+         border: 1px solid var(--line); background: var(--bg); color: var(--ink); }
+  .tabs button[aria-selected=true] { background: var(--ink); color: var(--bg); border-color: var(--ink); }
+  ol { padding-left: 20px; margin: 8px 0; }
+  li { margin: 4px 0; }
+  code { background: var(--code); padding: 1px 6px; border-radius: 6px; font-size: 0.92em; }
+  .note { color: var(--muted); font-size: 14px; }
+  .where { background: var(--soft); border-radius: 10px; padding: 10px 14px; margin-top: 10px; }
+  details { border-top: 1px solid var(--line); padding: 10px 0; }
+  details:first-of-type { border-top: 0; }
+  summary { cursor: pointer; font-weight: 600; }
+  footer { margin-top: 32px; font-size: 14px; color: var(--muted); }
+  footer a, .card a:not(.btn) { color: var(--accent); }
+  [hidden] { display: none !important; }
+</style>
+</head>
+<body>
+<main>
+  <header>
+    <h1>TamaWatch</h1>
+    <p class="lead">A virtual pet for your Garmin watch. Walk, train and sleep well, and it grows with you.
+    Free, for 105 watches.</p>
+  </header>
+
+  <section class="card step" aria-labelledby="s1">
+    <span class="num">1</span>
+    <div>
+      <h2 id="s1">Find your watch</h2>
+      <label for="watch" class="note">Your exact model is in the watch's settings, under System &gt; About.</label>
+      <select id="watch"></select>
+      <p class="note">Not in the list? TamaWatch needs a colour Garmin watch with Connect IQ 3.2 or newer and enough
+      memory for apps, so some models (black-and-white ones, and a few with very little app memory) can't run it.</p>
+    </div>
+  </section>
+
+  <section class="card step" aria-labelledby="s2">
+    <span class="num">2</span>
+    <div>
+      <h2 id="s2">Download its file</h2>
+      <p><a id="dl" class="btn" href="#" aria-disabled="true">Download TamaWatch</a></p>
+      <p class="note">Each watch model has its own file; the one for another model won't start. After it downloads,
+      rename it to <code>TamaWatch.prg</code> (so a later update simply replaces it).</p>
+    </div>
+  </section>
+
+  <section class="card step" aria-labelledby="s3">
+    <span class="num">3</span>
+    <div>
+      <h2 id="s3">Copy it onto the watch</h2>
+      <div class="tabs" role="tablist">
+        <button role="tab" aria-selected="true" data-tab="win">Windows</button>
+        <button role="tab" aria-selected="false" data-tab="mac">Mac</button>
+      </div>
+      <div data-panel="win">
+        <ol>
+          <li>Connect the watch to the computer with its charging cable.</li>
+          <li>Open <b>File Explorer</b>. The watch appears under <b>This PC</b> (as its name, or as a drive).</li>
+          <li>Open <code>Internal Storage</code> (if shown), then <code>GARMIN</code>, then <code>Apps</code>.</li>
+          <li>Copy <code>TamaWatch.prg</code> into <code>Apps</code>. If an older TamaWatch.prg is there, replace it: your pet and progress stay on the watch.</li>
+          <li>Eject the watch and unplug it. It takes a moment to install.</li>
+        </ol>
+      </div>
+      <div data-panel="mac" hidden>
+        <ol>
+          <li>Install <a href="https://openmtp.ganeshrvel.com">OpenMTP</a> (free). macOS can't open Garmin watches on its own.
+              Quit Garmin Express first if it's running.</li>
+          <li>Connect the watch with its charging cable and open OpenMTP.</li>
+          <li>On the watch's side, open <code>GARMIN</code>, then <code>Apps</code>.</li>
+          <li>Drag <code>TamaWatch.prg</code> into <code>Apps</code>. If an older TamaWatch.prg is there, replace it: your pet and progress stay on the watch.</li>
+          <li>Unplug the watch. It takes a moment to install.</li>
+        </ol>
+        <p class="note">Some older watches show up in Finder as a drive; then just copy the file into <code>GARMIN/Apps</code> there.</p>
+      </div>
+    </div>
+  </section>
+
+  <section class="card step" aria-labelledby="s4">
+    <span class="num">4</span>
+    <div>
+      <h2 id="s4">Open it</h2>
+      <p id="where" class="where">Pick your watch above to see where TamaWatch appears on it.</p>
+      <ol>
+        <li>The first time, choose your language, your trainer's name and look, and how many workouts you do in a usual week.</li>
+        <li>Pick your first partner, and keep moving: steps, workouts and sleep all count.</li>
+        <li><b>UP</b> and <b>DOWN</b> move, <b>START</b> picks, <b>BACK</b> goes back, and holding <b>UP</b> (or the book on screen) opens the menu.
+            The guide in the menu explains everything else.</li>
+      </ol>
+    </div>
+  </section>
+
+  <section class="card" aria-labelledby="faq">
+    <h2 id="faq">If something's not right</h2>
+    <details><summary>The watch shows an "IQ" icon with an exclamation mark</summary>
+      <p>The file is for a different model. Check the exact model in your watch's settings (System &gt; About),
+      download that one and replace the file.</p></details>
+    <details><summary>TamaWatch doesn't appear on the watch</summary>
+      <p>Make sure the file is directly inside <code>GARMIN/Apps</code> (not in a folder of its own) and ends in <code>.prg</code>,
+      then unplug the watch and give it a minute.</p></details>
+    <details><summary>Online battles and trades don't connect</summary>
+      <p>Online play goes through your phone: keep it near, with Garmin Connect running and internet on.
+      "Nearby" play connects two watches directly but hasn't been tried on real watches yet.</p></details>
+    <details><summary>Updating to a new version</summary>
+      <p>Download the new file for your watch and replace the old <code>TamaWatch.prg</code> in <code>GARMIN/Apps</code>.
+      Your pet, team and progress are kept.</p></details>
+    <details><summary>What does TamaWatch do with my data?</summary>
+      <p>It reads your steps, activities, Body Battery and sleep on the watch to run the game, and sends nothing anywhere.
+      The only exception is online battles and trades: their game messages (your pet's name, level and team) pass
+      through the public service ntfy.sh while you play.</p></details>
+  </section>
+
+  <footer>
+    <p><b>TamaWatch</b> by <a href="https://github.com/AlbertoElDiablo">AlbertoElDiablo</a> ·
+       <a href="https://github.com/AlbertoElDiablo/TamaWatch">source code</a> ·
+       a Garmin port of <a href="https://github.com/socquique/TamaPoke">TamaPoke</a> by Quique Tortosa and Cheng Ren (MIT).
+       Pokémon sprites from <a href="https://sprites.pmdcollab.org">PMD SpriteCollab</a> (CC BY-NC 4.0); artists in
+       <a href="https://github.com/AlbertoElDiablo/TamaWatch/blob/main/CREDITS.md">CREDITS.md</a>.</p>
+    <p>Unofficial, non-commercial fan project, not affiliated with or endorsed by Nintendo, Game Freak, The Pokémon Company
+       or Garmin. Pokémon names and characters are © Nintendo / Game Freak / The Pokémon Company.</p>
+  </footer>
+</main>
+
+<script>
+const WATCHES = [{"id": "approachs50", "name": "Approach S50", "kind": "new"}, {"id": "approachs7042mm", "name": "Approach S70 42mm", "kind": "new"}, {"id": "approachs7047mm", "name": "Approach S70 47mm", "kind": "new"}, {"id": "approachs7243mm", "name": "Approach S72 43mm", "kind": "new"}, {"id": "approachs7247mm", "name": "Approach S72 47mm", "kind": "new"}, {"id": "legacyherocaptainmarvel", "name": "Captain Marvel", "kind": "app"}, {"id": "d2air", "name": "D2 Air", "kind": "app"}, {"id": "d2airx10", "name": "D2 Air X10", "kind": "widget"}, {"id": "d2mach1", "name": "D2 Mach 1", "kind": "new"}, {"id": "d2mach2", "name": "D2 Mach 2", "kind": "new"}, {"id": "d2mach2pro", "name": "D2 Mach 2 Pro", "kind": "new"}, {"id": "legacysagadarthvader", "name": "Darth Vader", "kind": "app"}, {"id": "descentg2", "name": "Descent G2", "kind": "new"}, {"id": "descentmk2", "name": "Descent Mk2 / Mk2i", "kind": "widget"}, {"id": "descentmk2s", "name": "Descent Mk2 S", "kind": "widget"}, {"id": "descentmk343mm", "name": "Descent Mk3 43mm / Mk3i 43mm", "kind": "new"}, {"id": "descentmk351mm", "name": "Descent Mk3i 51mm", "kind": "new"}, {"id": "enduro3", "name": "Enduro 3", "kind": "new"}, {"id": "enduro4", "name": "Enduro 4", "kind": "new"}, {"id": "epix2", "name": "epix (Gen 2) / quatix 7 Sapphire", "kind": "new"}, {"id": "epix2pro42mm", "name": "epix Pro (Gen 2) 42mm", "kind": "new"}, {"id": "epix2pro47mm", "name": "epix Pro (Gen 2) 47mm / quatix 7 Pro", "kind": "new"}, {"id": "epix2pro51mm", "name": "epix Pro (Gen 2) 51mm / D2 Mach 1 Pro / tactix 7 – AMOLED Edition", "kind": "new"}, {"id": "legacyherofirstavenger", "name": "First Avenger", "kind": "app"}, {"id": "fr165", "name": "Forerunner 165", "kind": "new"}, {"id": "fr165m", "name": "Forerunner 165 Music", "kind": "new"}, {"id": "fr170", "name": "Forerunner 170", "kind": "new"}, {"id": "fr170m", "name": "Forerunner 170 Music", "kind": "new"}, {"id": "fr245m", "name": "Forerunner 245 Music", "kind": "widget"}, {"id": "fr255", "name": "Forerunner 255", "kind": "new"}, {"id": "fr255m", "name": "Forerunner 255 Music", "kind": "new"}, {"id": "fr255s", "name": "Forerunner 255s", "kind": "new"}, {"id": "fr255sm", "name": "Forerunner 255s Music", "kind": "new"}, {"id": "fr265", "name": "Forerunner 265", "kind": "new"}, {"id": "fr265s", "name": "Forerunner 265s", "kind": "new"}, {"id": "fr57042mm", "name": "Forerunner 570 42mm", "kind": "new"}, {"id": "fr57047mm", "name": "Forerunner 570 47mm", "kind": "new"}, {"id": "fr645m", "name": "Forerunner 645 Music", "kind": "app"}, {"id": "fr70", "name": "Forerunner 70", "kind": "new"}, {"id": "fr745", "name": "Forerunner 745", "kind": "widget"}, {"id": "fr945", "name": "Forerunner 945", "kind": "widget"}, {"id": "fr945lte", "name": "Forerunner 945 LTE", "kind": "widget"}, {"id": "fr955", "name": "Forerunner 955 / Solar", "kind": "new"}, {"id": "fr965", "name": "Forerunner 965", "kind": "new"}, {"id": "fr970", "name": "Forerunner 970", "kind": "new"}, {"id": "fenix5plus", "name": "fēnix 5 Plus", "kind": "widget"}, {"id": "fenix5splus", "name": "fēnix 5S Plus", "kind": "widget"}, {"id": "fenix5xplus", "name": "fēnix 5X Plus", "kind": "widget"}, {"id": "fenix6pro", "name": "fēnix 6 Pro / 6 Sapphire / 6 Pro Solar / 6 Pro Dual Power / quatix 6", "kind": "widget"}, {"id": "fenix6spro", "name": "fēnix 6S Pro / 6S Sapphire / 6S Pro Solar / 6S Pro Dual Power", "kind": "widget"}, {"id": "fenix6xpro", "name": "fēnix 6X Pro / 6X Sapphire / 6X Pro Solar / tactix Delta Sapphire / Delta Solar / Delta Solar - Ballistics Edition / quatix 6X / 6X Solar / 6X Dual Power", "kind": "widget"}, {"id": "fenix7", "name": "fēnix 7 / quatix 7", "kind": "new"}, {"id": "fenix7pro", "name": "fēnix 7 Pro", "kind": "new"}, {"id": "fenix7pronowifi", "name": "fēnix 7 Pro - Solar Edition (no Wi-Fi)", "kind": "new"}, {"id": "fenix7s", "name": "fēnix 7S", "kind": "new"}, {"id": "fenix7spro", "name": "fēnix 7S Pro", "kind": "new"}, {"id": "fenix7x", "name": "fēnix 7X / tactix 7 / quatix 7X Solar / Enduro 2", "kind": "new"}, {"id": "fenix7xpro", "name": "fēnix 7X Pro", "kind": "new"}, {"id": "fenix7xpronowifi", "name": "fēnix 7X Pro - Solar Edition (no Wi-Fi)", "kind": "new"}, {"id": "fenix843mm", "name": "fēnix 8 43mm", "kind": "new"}, {"id": "fenix847mm", "name": "fēnix 8 47mm / 51mm / tactix 8 47mm / 51mm / quatix 8 47mm / 51mm", "kind": "new"}, {"id": "fenix8pro47mm", "name": "fēnix 8 Pro 47mm / 51mm / MicroLED / quatix 8 Pro 47mm / 51mm", "kind": "new"}, {"id": "fenix8solar47mm", "name": "fēnix 8 Solar 47mm", "kind": "new"}, {"id": "fenix8solar51mm", "name": "fēnix 8 Solar 51mm / tactix 8 Solar 51mm", "kind": "new"}, {"id": "fenix943mm", "name": "fēnix 9 43mm", "kind": "new"}, {"id": "fenix947mm", "name": "fēnix 9 47mm / 51mm", "kind": "new"}, {"id": "fenix9pro43mm", "name": "fēnix 9 Pro 43mm", "kind": "new"}, {"id": "fenix9pro47mm", "name": "fēnix 9 Pro 47mm", "kind": "new"}, {"id": "fenix9pro51mm", "name": "fēnix 9 Pro 51mm", "kind": "new"}, {"id": "fenix9prosolar47mm", "name": "fēnix 9 Pro Solar 47mm", "kind": "new"}, {"id": "fenix9prosolar51mm", "name": "fēnix 9 Pro Solar 51mm", "kind": "new"}, {"id": "fenixe", "name": "fēnix E", "kind": "new"}, {"id": "instinct3amoled45mm", "name": "Instinct 3 AMOLED 45mm", "kind": "new"}, {"id": "instinct3amoled50mm", "name": "Instinct 3 AMOLED 50mm", "kind": "new"}, {"id": "instinctcrossoveramoled", "name": "Instinct Crossover AMOLED", "kind": "new"}, {"id": "marq2", "name": "MARQ (Gen 2) Athlete / Adventurer / Captain / Golfer / Carbon Edition / Commander - Carbon Edition", "kind": "new"}, {"id": "marq2aviator", "name": "MARQ (Gen 2) Aviator", "kind": "new"}, {"id": "marq3", "name": "MARQ (Gen 3) Athlete / Adventurer / Aviator / Commander / Golfer / Diver", "kind": "new"}, {"id": "marqadventurer", "name": "MARQ Adventurer", "kind": "widget"}, {"id": "marqathlete", "name": "MARQ Athlete", "kind": "widget"}, {"id": "marqaviator", "name": "MARQ Aviator", "kind": "widget"}, {"id": "marqcaptain", "name": "MARQ Captain / MARQ Captain: American Magic Edition", "kind": "widget"}, {"id": "marqcommander", "name": "MARQ Commander", "kind": "widget"}, {"id": "marqdriver", "name": "MARQ Driver", "kind": "widget"}, {"id": "marqexpedition", "name": "MARQ Expedition", "kind": "widget"}, {"id": "marqgolfer", "name": "MARQ Golfer", "kind": "widget"}, {"id": "legacysagarey", "name": "Rey", "kind": "app"}, {"id": "venu", "name": "Venu", "kind": "app"}, {"id": "venu2", "name": "Venu 2", "kind": "widget"}, {"id": "venu2plus", "name": "Venu 2 Plus", "kind": "widget"}, {"id": "venu2s", "name": "Venu 2S", "kind": "widget"}, {"id": "venu3", "name": "Venu 3", "kind": "new"}, {"id": "venu3s", "name": "Venu 3S", "kind": "new"}, {"id": "venu441mm", "name": "Venu 4 41mm", "kind": "new"}, {"id": "venu445mm", "name": "Venu 4 45mm / D2 Air X15", "kind": "new"}, {"id": "venud", "name": "Venu Mercedes-Benz Collection", "kind": "app"}, {"id": "venusq2", "name": "Venu Sq 2", "kind": "widget"}, {"id": "venusq2m", "name": "Venu Sq 2 Music", "kind": "widget"}, {"id": "venusqm", "name": "Venu Sq. Music Edition", "kind": "app"}, {"id": "venux1", "name": "Venu X1", "kind": "new"}, {"id": "vivoactive3m", "name": "vívoactive 3 Music", "kind": "app"}, {"id": "vivoactive4", "name": "vívoactive 4", "kind": "app"}, {"id": "vivoactive4s", "name": "vívoactive 4S", "kind": "app"}, {"id": "vivoactive5", "name": "vívoactive 5", "kind": "new"}, {"id": "vivoactive6", "name": "vívoactive 6", "kind": "new"}];
+const REPO = "AlbertoElDiablo/TamaWatch";
+const WHERE = {
+  widget: "On this watch TamaWatch is a <b>widget</b>: scroll the widget list from the watch face (UP / DOWN) and select it.",
+  new: "On this watch TamaWatch opens from the <b>apps list</b> (START on the watch face, or the Activities &amp; Apps menu), and its preview also shows in the widget / glance list.",
+  app: "On this watch TamaWatch opens from the <b>apps list</b> (START on the watch face, or the Activities &amp; Apps menu)."
+};
+const sel = document.getElementById("watch"), dl = document.getElementById("dl"), where = document.getElementById("where");
+
+// a dropdown, the watches grouped by family
+const FAMILIES = ["Approach", "D2", "Descent", "Enduro", "epix", "fenix", "Forerunner", "Instinct", "MARQ", "Venu", "vivoactive"];
+function family(name) {
+  const n = name.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+  for (const f of FAMILIES) if (n.startsWith(f.toLowerCase())) return f === "fenix" ? "fēnix" : (f === "vivoactive" ? "vívoactive" : f);
+  return "Other";
+}
+const first = document.createElement("option");
+first.value = ""; first.textContent = "Choose your watch…"; sel.appendChild(first);
+const groups = {};
+for (const w of WATCHES) {
+  const f = family(w.name);
+  if (!groups[f]) { groups[f] = document.createElement("optgroup"); groups[f].label = f; }
+  const o = document.createElement("option"); o.value = w.id; o.textContent = w.name; groups[f].appendChild(o);
+}
+for (const f of Object.keys(groups).sort((a, b) => a === "Other" ? 1 : b === "Other" ? -1 : a.localeCompare(b))) sel.appendChild(groups[f]);
+
+function choose(w) {
+  if (!w) {
+    dl.href = "#"; dl.setAttribute("aria-disabled", "true"); dl.textContent = "Download TamaWatch";
+    where.textContent = "Pick your watch above to see where TamaWatch appears on it.";
+    return;
+  }
+  sel.value = w.id;
+  dl.href = "https://github.com/" + REPO + "/releases/latest/download/TamaWatch-" + w.id + ".prg";
+  dl.setAttribute("aria-disabled", "false");
+  dl.textContent = "Download TamaWatch for " + w.name.split(" / ")[0];
+  where.innerHTML = WHERE[w.kind];
+  try { localStorage.setItem("tamawatch-watch", w.id); } catch (e) {}
+}
+sel.addEventListener("change", () => choose(WATCHES.find(w => w.id === sel.value)));
+for (const t of document.querySelectorAll("[role=tab]")) {
+  t.addEventListener("click", () => {
+    for (const u of document.querySelectorAll("[role=tab]")) u.setAttribute("aria-selected", u === t ? "true" : "false");
+    for (const p of document.querySelectorAll("[data-panel]")) p.hidden = p.dataset.panel !== t.dataset.tab;
+  });
+}
+if (/Mac/.test(navigator.platform)) document.querySelector("[data-tab=mac]").click();
+let saved = null;
+try { saved = localStorage.getItem("tamawatch-watch"); } catch (e) {}
+choose(WATCHES.find(w => w.id === saved));
+</script>
+</body>
+</html>

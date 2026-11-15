@@ -1,0 +1,3 @@
+<drawables>
+    <bitmap scope="application" id="kids" filename="kids/kids.png"><palette disableTransparency="false"><color>000000</color><color>000055</color><color>0055AA</color><color>00AA00</color><color>550000</color><color>55FF55</color><color>AA0000</color><color>AA00AA</color><color>AA5500</color><color>AAAAFF</color><color>FF55AA</color><color>FF55FF</color><color>FFAA55</color><color>FFFF00</color><color>FFFF55</color><color>FFFFFF</color></palette></bitmap>
+</drawables>

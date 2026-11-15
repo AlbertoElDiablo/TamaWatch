@@ -1,0 +1,30 @@
+<?xml version="1.0"?>
+<iq:manifest version="3" xmlns:iq="http://www.garmin.com/xml/connectiq">
+    <iq:application id="20ca04fff8cc4bffb5f0526790d57c02" type="watch-app" name="@Strings.AppName" entry="TamaWatchApp" launcherIcon="@Drawables.LauncherIcon" minApiLevel="3.2.0">
+        <iq:products>
+            <iq:product id="d2air"/>
+            <iq:product id="fr645m"/>
+            <iq:product id="legacyherocaptainmarvel"/>
+            <iq:product id="legacyherofirstavenger"/>
+            <iq:product id="legacysagadarthvader"/>
+            <iq:product id="legacysagarey"/>
+            <iq:product id="venu"/>
+            <iq:product id="venud"/>
+            <iq:product id="venusqm"/>
+            <iq:product id="vivoactive3m"/>
+            <iq:product id="vivoactive4"/>
+            <iq:product id="vivoactive4s"/>
+        </iq:products>
+        <iq:permissions>
+            <iq:uses-permission id="Ant"/>
+            <iq:uses-permission id="Background"/>
+            <iq:uses-permission id="Communications"/>
+            <iq:uses-permission id="SensorHistory"/>
+            <iq:uses-permission id="UserProfile"/>
+        </iq:permissions>
+        <iq:languages>
+            <iq:language>eng</iq:language>
+        </iq:languages>
+        <iq:barrels/>
+    </iq:application>
+</iq:manifest>

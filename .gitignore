@@ -1,0 +1,13 @@
+# build output (the .prg files are published as release downloads, not in the repo)
+bin/
+*.prg
+*.prg.debug.xml
+gen/
+internal-mir/
+external-mir/
+# never publish the signing key
+*.der
+*.pem
+# local clutter
+.DS_Store
+__pycache__/
