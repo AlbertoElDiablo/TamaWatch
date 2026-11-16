@@ -139,6 +139,7 @@ PAGE = r"""<!doctype html>
       <div class="tabs" role="tablist">
         <button role="tab" aria-selected="true" data-tab="win">Windows</button>
         <button role="tab" aria-selected="false" data-tab="mac">Mac</button>
+        <button role="tab" aria-selected="false" data-tab="linux">Linux</button>
       </div>
       <div data-panel="win">
         <ol>
@@ -159,6 +160,21 @@ PAGE = r"""<!doctype html>
           <li>Unplug the watch. It takes a moment to install.</li>
         </ol>
         <p class="note">Some older watches show up in Finder as a drive; then just copy the file into <code>GARMIN/Apps</code> there.</p>
+      </div>
+      <div data-panel="linux" hidden>
+        <ol>
+          <li>Connect the watch to the computer with its charging cable.</li>
+          <li>Open your file manager (Files, Dolphin, Thunar...). The watch appears in the sidebar under its name.</li>
+          <li>Open <code>Internal Storage</code> (if shown), then <code>GARMIN</code>, then <code>Apps</code>.</li>
+          <li>Copy <code>TamaWatch.prg</code> into <code>Apps</code>. If an older TamaWatch.prg is there, replace it: your pet and progress stay on the watch.</li>
+          <li>Eject the watch in the file manager and unplug it. It takes a moment to install.</li>
+        </ol>
+        <p class="note">Older watches show up as an ordinary USB drive; newer ones use MTP. If the watch doesn't appear,
+        install MTP support and plug it in again: <code>sudo apt install gvfs-backends</code> (Ubuntu, Debian, Mint),
+        <code>sudo dnf install gvfs-mtp</code> (Fedora) or <code>sudo pacman -S gvfs-mtp</code> (Arch).</p>
+        <p class="note">From a terminal instead: install <code>jmtpfs</code>, then
+        <code>mkdir -p ~/watch &amp;&amp; jmtpfs ~/watch</code>, copy the file into <code>~/watch/Internal Storage/GARMIN/Apps/</code>
+        (or <code>~/watch/GARMIN/Apps/</code>) and finish with <code>fusermount -u ~/watch</code>.</p>
       </div>
     </div>
   </section>
@@ -323,12 +339,15 @@ for (const t of document.querySelectorAll("[role=tab]")) {
     for (const p of document.querySelectorAll("[data-panel]")) p.hidden = p.dataset.panel !== t.dataset.tab;
   });
 }
-// open the tab for the computer this page is viewed on (Apple devices: Mac; anything else: Windows)
-function isApple() {
+// open the tab for the computer this page is viewed on (Apple devices: Mac; Linux; else Windows)
+function osTab() {
   const p = (navigator.userAgentData && navigator.userAgentData.platform) || navigator.platform || "";
-  return /mac|iphone|ipad|ipod/i.test(p) || /Macintosh|Mac OS X|iPhone|iPad/.test(navigator.userAgent);
+  const ua = navigator.userAgent;
+  if (/mac|iphone|ipad|ipod/i.test(p) || /Macintosh|Mac OS X|iPhone|iPad/.test(ua)) return "mac";
+  if ((/linux/i.test(p) || /Linux|X11/.test(ua)) && !/Android/i.test(ua)) return "linux";
+  return "win";
 }
-document.querySelector("[data-tab=" + (isApple() ? "mac" : "win") + "]").click();
+document.querySelector("[data-tab=" + osTab() + "]").click();
 // the page always opens on "Choose your watch…" (the last region picked is remembered)
 let savedRegion = null;
 try { savedRegion = localStorage.getItem("tamawatch-region"); } catch (e) {}
