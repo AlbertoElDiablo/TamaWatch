@@ -18,11 +18,23 @@ class BattleResultView extends WatchUi.View {
     const FH = 84;
     const FY = 70;
 
+    var lead;             // who stands in the left frame: your partner when it fought (its EXP, level
+    var leadArt;          // and HP are the lines below), else the last one of yours on the field
+
     function initialize(battle, myTeam, theirTeam) {
         View.initialize();
         b = battle;
         mine = myTeam;
         theirs = theirTeam;
+        lead = b.petC != null ? b.petC : b.you;
+    }
+
+    function onShow() {
+        if (lead == b.you) { leadArt = b.art[0]; return; }
+        b.art[0] = null;                // the one on the field: its sheet is not needed any more
+        var meta = WatchUi.loadResource(SpriteIndex.data(b.model.dex));
+        var a = SpriteIndex.art(meta, b.model.dex, b.model.shiny);
+        leadArt = [meta, a[0], a[1]];
     }
 
     function onUpdate(dc) {
@@ -44,7 +56,7 @@ class BattleResultView extends WatchUi.View {
         // the two frames and VS
         var lx = cx - 12 - FW;
         var rx = cx + 12;
-        frame(dc, lx, b.you, b.art[0]);
+        frame(dc, lx, lead, leadArt);
         frame(dc, rx, b.foe, b.art[1]);
         dc.setColor(0xFF5500, Graphics.COLOR_TRANSPARENT);
         dc.drawText(cx, capY(Graphics.FONT_SMALL, FY + FH / 2), Graphics.FONT_SMALL, Tr.t("VS"), Graphics.TEXT_JUSTIFY_CENTER);
@@ -52,8 +64,8 @@ class BattleResultView extends WatchUi.View {
         // names under them, then the team dots when a side had more than one
         var ny = FY + FH + 10;
         dc.setColor(INK, Graphics.COLOR_TRANSPARENT);
-        dc.drawText(lx + FW / 2, capY(Graphics.FONT_XTINY, ny), Graphics.FONT_XTINY, Fit.trim(dc, b.you.name, FW + 8, Graphics.FONT_XTINY), Graphics.TEXT_JUSTIFY_CENTER);
-        dc.drawText(rx + FW / 2, capY(Graphics.FONT_XTINY, ny), Graphics.FONT_XTINY, Fit.trim(dc, b.foe.name, FW + 8, Graphics.FONT_XTINY), Graphics.TEXT_JUSTIFY_CENTER);
+        dc.drawText(lx + FW / 2, capY(Graphics.FONT_XTINY, ny), Graphics.FONT_XTINY, Fit.trim(dc, lead.name, FW + 20, Graphics.FONT_XTINY), Graphics.TEXT_JUSTIFY_CENTER);
+        dc.drawText(rx + FW / 2, capY(Graphics.FONT_XTINY, ny), Graphics.FONT_XTINY, Fit.trim(dc, b.foe.name, FW + 20, Graphics.FONT_XTINY), Graphics.TEXT_JUSTIFY_CENTER);
         var y = ny + 12;
         if (mine.size() > 1 || theirs.size() > 1) {
             dots(dc, lx + FW / 2, y + 4, mine);
