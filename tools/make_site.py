@@ -293,7 +293,7 @@ function family(name) {
   return "Other";
 }
 const first = document.createElement("option");
-first.value = ""; first.textContent = "Choose your watch…"; sel.appendChild(first);
+first.value = ""; first.textContent = "Choose your watch…"; first.selected = true; sel.appendChild(first);
 const groups = {};
 for (const w of WATCHES) {
   const f = family(w.name);
@@ -313,7 +313,6 @@ function choose(w) {
   dl.setAttribute("aria-disabled", "false");
   dl.textContent = "Download TamaWatch " + region.name + " for " + w.name.split(" / ")[0];
   where.innerHTML = WHERE[w.kind];
-  try { localStorage.setItem("tamawatch-watch", w.id); } catch (e) {}
 }
 sel.addEventListener("change", () => choose(WATCHES.find(w => w.id === sel.value)));
 for (const t of document.querySelectorAll("[role=tab]")) {
@@ -323,10 +322,10 @@ for (const t of document.querySelectorAll("[role=tab]")) {
   });
 }
 if (/Mac/.test(navigator.platform)) document.querySelector("[data-tab=mac]").click();
-let saved = null, savedRegion = null;
-try { saved = localStorage.getItem("tamawatch-watch"); savedRegion = localStorage.getItem("tamawatch-region"); } catch (e) {}
-const sw = WATCHES.find(w => w.id === saved);
-if (sw) sel.value = sw.id;
+// the page always opens on "Choose your watch…" (the last region picked is remembered)
+let savedRegion = null;
+try { savedRegion = localStorage.getItem("tamawatch-region"); } catch (e) {}
+sel.value = "";
 pickRegion(REGIONS.find(r => r.id === savedRegion) || REGIONS[0]);
 </script>
 </body>
