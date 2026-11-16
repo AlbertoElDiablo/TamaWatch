@@ -27,15 +27,17 @@ module Hp {
 
     // After a battle (or running from one): the pet keeps the HP it ended with. A battle that
     // took 40 % or more of it also costs food, a quarter of what it lost.
+    // Returns the food it cost (0: none).
     function afterBattle(m, endPct, startPct) {
         set(m, endPct);
         var lost = startPct - endPct;
         if (lost >= 40) {
             var before = m.food;
             m.food = m.clamp100(m.food - lost / 4);
-            if (before - m.food > 0) { m.say(Tr.t("Tough battle! FOOD -") + (before - m.food), 3500); }
             m.save();
+            return before - m.food;
         }
+        return 0;
     }
 
     // After a training game: some HP back and, now and then (1 in 3), one piece of fruit found

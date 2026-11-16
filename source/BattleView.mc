@@ -79,6 +79,7 @@ class BattleView extends WatchUi.View {
     function initWith(m, pv, foeDex, foeLvl, trainerIdx, isHard, mask) {
         squadMask = mask;
         model = m;
+        repSnap = [m.repExp, m.repLv, [m.repBag[0], m.repBag[1], m.repBag[2], m.repBag[3]]];
         petView = pv;
         trainer = trainerIdx;
         hard = isHard;
@@ -105,6 +106,13 @@ class BattleView extends WatchUi.View {
     var petC = null;
     var petStartPct = 100;
     var hpSaved = false;
+    // for the result screen: what the battle paid, and the "while you were away" counters as they
+    // were before it (a battle's EXP and candy are not news from your activity)
+    var expGained = 0;
+    var levelUp = false;
+    var foodLost = 0;
+    var repSnap = null;
+    var ranAway = false;        // the friend left: no result screen, back to the lobby
 
     function notePet(c) {
         petC = c;
@@ -112,11 +120,34 @@ class BattleView extends WatchUi.View {
     }
 
     function savePetHp() {
-        if (hpSaved || petC == null || model.isEgg()) { return; }
+        if (hpSaved) { return; }
         hpSaved = true;
+        if (repSnap != null) {
+            model.repExp = repSnap[0];
+            model.repLv = repSnap[1];
+            model.repBag = repSnap[2];
+        }
+        if (petC == null || model.isEgg()) { return; }
         var pct = petC.hp * 100 / (petC.maxHp > 0 ? petC.maxHp : 1);
         if (pct == 0 && petC.hp > 0) { pct = 1; }
-        Hp.afterBattle(model, pct, petStartPct);
+        foodLost = Hp.afterBattle(model, pct, petStartPct);
+    }
+
+    // The battle is over (won or lost) and its lines are read: the result screen takes its place.
+    function showResult() {
+        savePetHp();
+        var mine = [];
+        for (var i = 0; i < squad.size(); i++) { mine.add(squad[i].fainted()); }
+        var theirs = [];
+        if (lobby != null) {
+            for (var i = 0; i < foeSquad.size(); i++) { theirs.add(foeSquad[i].fainted()); }
+        } else if (trainer >= 0) {
+            for (var i = 0; i < team.size(); i++) { theirs.add(i < foeAt || (i == foeAt && foe.fainted())); }
+        } else {
+            theirs.add(foe.fainted());
+        }
+        var rv = new BattleResultView(self, mine, theirs);
+        WatchUi.switchToView(rv, new BattleResultDelegate(rv), WatchUi.SLIDE_UP);
     }
 
     function buildSquad(cap) {
@@ -230,6 +261,7 @@ class BattleView extends WatchUi.View {
     }
 
     function peerLeft() {
+        ranAway = true;
         waitingPeer = false;
         over = true;
         won = false;
@@ -465,6 +497,7 @@ class BattleView extends WatchUi.View {
 
     // Faints and the outcome join the last step; then play from the first one.
     function finishTurn() {
+        if (lobby == null) { turn++; }
         msgs = [];
         afterFaints();
         if (steps.size() == 0) { steps.add([[], -1, -1, you.hp, foe.hp, false, false]); }
@@ -587,6 +620,8 @@ class BattleView extends WatchUi.View {
         else { for (var i = 0; i < foeSquad.size(); i++) { lv += foeSquad[i].level; } }
         var before = model.level();
         var n = model.battleExp(kind, lv, didWin, hard);
+        expGained = n;
+        levelUp = model.level() > before;
         if (n > 0) {
             msgs.add(model.name() + Tr.t(" gained ") + n + Tr.t(" EXP!"));
             if (model.level() > before) { msgs.add(model.name() + Tr.t(" grew to Lv.") + model.level() + "!"); }
@@ -637,7 +672,6 @@ class BattleView extends WatchUi.View {
             msgs = [Tr.t("Go, ") + you.name + "!"];
             return false;
         }
-        if (over && won && trainer >= 0 && !win) { win = true; return false; }
         return over;
     }
 
@@ -971,9 +1005,11 @@ class BattleDelegate extends WatchUi.BehaviorDelegate {
 
     function onSelect() {
         if (v.waitingPeer) { return true; }
-        if (v.win) { leave(); return true; }
         if (v.msgs.size() > 0) {
-            if (v.advance()) { leave(); }
+            if (v.advance()) {
+                // over: the result, straight from the battle (a run away goes back as before)
+                if (v.over && !v.ranAway) { v.showResult(); } else { leave(); }
+            }
         } else if (v.menu == v.MENU_MAIN) {
             if (v.sel == 0) { v.menu = v.MENU_MOVES; v.sel = 0; }
             else if (v.sel == 2) { v.menu = v.MENU_RUN; v.sel = 1; }

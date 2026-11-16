@@ -14,7 +14,8 @@ watch models.
 ## What it does
 
 - **Your activity raises it.** Every 50 steps give it 1 EXP and every 3,000 steps an apple (steps add
-  up over time). Each activity you record pays EXP by its length and sport, per minute: running or
+  up over time, and steps from a day you didn't open the app are picked up from the watch's
+  history). Each activity you record pays EXP by its length and sport, per minute: running or
   swimming 20, strength/gym 27, cycling 15, hiking 12, walking 8, anything else 15. Strength raises
   your heart rate less but is as hard, so 45 minutes of weights pay like an hour's run or 80 minutes
   on the bike (about 1,200 EXP). It also fills joy, trains a stat (running speed, cycling and
@@ -40,6 +41,9 @@ watch models.
 - **Battles.** Wild battles, 8 gyms with our own leaders and badges (easy or hard; hard gyms need
   some Body Battery), and link battles with a friend, **whatever region each of you plays** (a
   creature your watch has no picture of is shown as an orb in its type's colours).
+- **A result screen after every battle**, won or lost: your creature and the rival side by side
+  (team dots when several fought), then the EXP, level, HP, food and turns. A lost battle pays a
+  tenth of the EXP winning it would have.
 - **Trading.** Swap team members with a friend who plays the same region (a creature only lives
   in its own region; the watch explains this if your regions differ).
 - **7 languages:** Català, Deutsch, English, Español, Français, Italiano, Português.

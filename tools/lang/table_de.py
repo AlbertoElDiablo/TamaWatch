@@ -513,4 +513,10 @@ DE = {
 'This TamaWatch holds the {0} region. Every region is its own version of the app, with its own game: pick another on the TamaWatch website. Link battles work with friends of any region; trades need the same one.': 'Dieses TamaWatch enthält die Region {0}. Jede Region ist eine eigene Version der App mit eigenem Spielstand: Wähle eine andere auf der TamaWatch-Website. Link-Kämpfe gehen mit Freunden jeder Region, Tausch nur in derselben.',
 'New here? Read the GUIDE: it explains HP, food, eggs, battles and more. Hold UP, or pick the book, and choose GUIDE.': 'Neu hier? Lies die ANLEITUNG: Sie erklärt KP, Essen, Eier, Kämpfe und mehr. Halte OBEN gedrückt oder wähle das Buch, dann ANLEITUNG.',
 "Every 50 steps give 1 EXP. Each activity you record gives EXP by its length and sport, per minute: running or swimming 20, strength or gym 27, cycling 15, hiking 12, walking 8, anything else 15 (so 45 minutes of weights pay like an hour's run). Intensity minutes outside your recorded activities give 10 EXP each. Battles give EXP too: wild fights a few times a day, gyms and link battles more. Your partner gets all of it and the rest of the team 25%. New levels teach moves and let it evolve.": 'Alle 50 Schritte gibt es 1 EP. Jede aufgezeichnete Aktivität gibt EP nach Dauer und Sportart, pro Minute: Laufen oder Schwimmen 20, Kraft oder Fitnessstudio 27, Radfahren 15, Wandern 12, Gehen 8, alles andere 15 (45 Minuten Krafttraining zählen wie eine Stunde Laufen). Intensitätsminuten außerhalb deiner aufgezeichneten Aktivitäten geben je 10 EP. Auch Kämpfe geben EP: wilde ein paar Mal am Tag, Arenen und Link-Kämpfe mehr. Dein Partner bekommt alles, der Rest des Teams 25 %. Neue Level bringen Attacken bei und lassen ihn sich entwickeln.',
+'VICTORY!': 'SIEG!',
+'DEFEAT': 'NIEDERLAGE',
+'Wild': 'Wild',
+'VS': 'VS',
+'{0} turns': '{0} Runden',
+'1 turn': '1 Runde',
 }

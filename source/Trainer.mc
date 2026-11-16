@@ -269,7 +269,7 @@ class ReportView extends WatchUi.View {
         if (m.repMin > 0) { rows.add([Tr.t("Active minutes"), m.repMin.toString()]); }
         if (m.repWork > 0) { rows.add([m.repWork == 1 ? Tr.t("Workout") : Tr.t("Workouts"), m.repWork.toString()]); }
         // no activity logged: the steps you walked instead
-        if (m.repMin == 0 && m.repWork == 0) { rows.add([Tr.t("Steps"), m.repSteps.toString()]); }
+        if (m.repMin == 0 && m.repWork == 0 && m.repSteps > 0) { rows.add([Tr.t("Steps"), m.repSteps.toString()]); }
         if (m.repExp > 0) { rows.add([Tr.t("EXP"), "+" + m.repExp]); }
         if (m.repLv > 0) { rows.add([Tr.t("Level"), Tr.t("Lv.") + m.level() + "!"]); }
         if (m.repBag[0] > 0) { rows.add([Tr.t("Apples"), "+" + m.repBag[0]]); }
@@ -297,9 +297,9 @@ class ReportView extends WatchUi.View {
             dc.setColor(i % 2 == 0 ? 0xFFFFAA : 0xFFFFFF, Graphics.COLOR_TRANSPARENT);
             dc.fillRectangle(sp[0], y, sp[1], rh);
             dc.setColor(0x000055, Graphics.COLOR_TRANSPARENT);
-            dc.drawText(sp[0] + 10, y + (rh - dc.getFontHeight(f)) / 2, f, rows[i][0], Graphics.TEXT_JUSTIFY_LEFT);
+            dc.drawText(sp[0] + 10, capY(f, y + rh / 2), f, rows[i][0], Graphics.TEXT_JUSTIFY_LEFT);   // centred on its row with any font
             dc.setColor(rows[i][1].find("+") == 0 || rows[i][0].equals(Tr.t("Level")) ? GREEN : 0x000055, Graphics.COLOR_TRANSPARENT);
-            dc.drawText(sp[0] + sp[1] - 10, y + (rh - dc.getFontHeight(f)) / 2, f, rows[i][1], Graphics.TEXT_JUSTIFY_RIGHT);
+            dc.drawText(sp[0] + sp[1] - 10, capY(f, y + rh / 2), f, rows[i][1], Graphics.TEXT_JUSTIFY_RIGHT);
         }
         dc.setColor(0x555555, Graphics.COLOR_TRANSPARENT);
         dc.drawText(cx, y0 + n * rh + 10, UiFont.tiny(), Tr.t("START to continue"), Graphics.TEXT_JUSTIFY_CENTER);

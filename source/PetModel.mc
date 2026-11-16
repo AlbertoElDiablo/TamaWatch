@@ -361,8 +361,7 @@ class PetModel {
         if (kind == 0) {
             var d = today();
             if (d != wildDay) { wildDay = d; wildWins = 0; }
-            if (!won) { return 0; }
-            wildWins++;
+            if (won) { wildWins++; }
             n = foeLevels * 6;
             if (wildWins > WILD_FULL_PER_DAY) { n = n / 10; }
         } else if (kind == 1) {
@@ -370,7 +369,7 @@ class PetModel {
         } else {
             n = foeLevels * 20;
         }
-        if (!won) { n = n / 4; }
+        if (!won) { n = n / 10; }           // a lost battle: a tenth of what winning it pays
         if (n < 1) { n = 1; }
         gainExp(n);
         save();
@@ -964,6 +963,24 @@ class PetModel {
         return g > 0 ? g : 10000;
     }
 
+    // A new day since the steps were last read: the rest of that day (a run after the app was last
+    // opened) and any whole days the app wasn't opened, from the watch's daily history, so those
+    // steps still count toward eggs, hatching, EXP and apples.
+    function missedSteps(lastDay, readThen, today) {
+        if (lastDay <= 0 || !(ActivityMonitor has :getHistory)) { return 0; }
+        var hist = ActivityMonitor.getHistory();
+        if (hist == null) { return 0; }
+        var n = 0;
+        for (var i = 0; i < hist.size(); i++) {
+            var h = hist[i];
+            if (h == null || h.startOfDay == null || h.steps == null) { continue; }
+            var day = (h.startOfDay.value() + localOffset()) / 86400;
+            if (day == lastDay) { n += h.steps > readThen ? h.steps - readThen : 0; }
+            else if (day > lastDay && day < today) { n += h.steps; }
+        }
+        return n;
+    }
+
     // Your step goal in thirds (TamaPoke paid at 2,500 / 5,000 / 10,000), steps hatch eggs, the
     // floors goal trains DEF; then workouts, the weekly intensity goal and the move bar.
     function claimSteps() {
@@ -971,9 +988,15 @@ class PetModel {
         if (info == null) { return; }
         var steps = info.steps != null ? info.steps : 0;
         var d = today();
-        if (d != stepReadDay) { stepReadDay = d; stepRead = 0; }
+        var missed = 0;
+        if (d != stepReadDay) {
+            missed = missedSteps(stepReadDay, stepRead, d);
+            stepReadDay = d;
+            stepRead = 0;
+        }
         var delta = steps - stepRead;
         if (delta < 0) { delta = steps; }
+        delta += missed;
         stepRead = steps;
         if (delta > 0) { repSteps += delta; }
         Incubator.onSteps(self, delta);                 // bonus eggs: one per 15,000 steps
