@@ -287,7 +287,12 @@ for (const t of document.querySelectorAll("[role=tab]")) {
     for (const p of document.querySelectorAll("[data-panel]")) p.hidden = p.dataset.panel !== t.dataset.tab;
   });
 }
-if (/Mac/.test(navigator.platform)) document.querySelector("[data-tab=mac]").click();
+// open the tab for the computer this page is viewed on (Apple devices: Mac; anything else: Windows)
+function isApple() {
+  const p = (navigator.userAgentData && navigator.userAgentData.platform) || navigator.platform || "";
+  return /mac|iphone|ipad|ipod/i.test(p) || /Macintosh|Mac OS X|iPhone|iPad/.test(navigator.userAgent);
+}
+document.querySelector("[data-tab=" + (isApple() ? "mac" : "win") + "]").click();
 // the page always opens on "Choose your watch…" (the last region picked is remembered)
 let savedRegion = null;
 try { savedRegion = localStorage.getItem("tamawatch-region"); } catch (e) {}
