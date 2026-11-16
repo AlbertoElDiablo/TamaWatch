@@ -1,3 +1,4 @@
+import Toybox.Activity;
 import Toybox.ActivityMonitor;
 import Toybox.Application.Storage;
 import Toybox.Background;
@@ -8,7 +9,7 @@ import Toybox.Time;
 
 // Runs every 5 minutes in the background. It only reads the saved summary, projects
 // the awake drain forward (FOOD ~0.5/min, HYG ~0.25/min, JOY ~1 per 101 min) and asks the
-// watch to prompt you when a need runs low.
+// watch to prompt you when a need runs low; never while you are recording an activity.
 (:background)
 class PetService extends System.ServiceDelegate {
 
@@ -29,7 +30,17 @@ class PetService extends System.ServiceDelegate {
     (:nonotif)
     function notify(msg) { Background.requestApplicationWake(msg); }
 
+    // An activity being recorded on the watch (running, paused, or stopped and not yet saved):
+    // no alerts until it is over; the next check after it asks again.
+    function recording() {
+        if (!(Toybox has :Activity) || !(Activity has :getActivityInfo)) { return false; }
+        var i = Activity.getActivityInfo();
+        if (i == null || !(i has :timerState) || i.timerState == null) { return false; }
+        return i.timerState != Activity.TIMER_STATE_OFF;
+    }
+
     function onTemporalEvent() {
+        if (recording()) { Background.exit(null); return; }
         var d = Storage.getValue("pet") as Dictionary?;
         if (eggReady(d) || eggHatching(d)) { Background.exit(null); return; }
         if (d != null && !d["egg"] && !d["asleep"] && d["alerts"] != false) {

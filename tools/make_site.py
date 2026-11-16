@@ -2,10 +2,10 @@
 TamaWatch file from the latest GitHub release, and the steps to put it on the watch.
 
 The watch list comes from the three manifests (which watch gets which build) and the Connect IQ
-SDK's device files (their names). The release files are named TamaWatch-<device>.prg
-(tools/make_release.sh).
+SDK's device files (their names), the regions from tools/region.py. The release files are named
+TamaWatch-<region>-<device>.prg (tools/make_release.sh).
 
-usage: python3 make_site.py <TamaWatch>
+usage: python3 make_site.py <TamaWatch>      (TW_SITE_REGIONS="kanto johto ...": list only these)
 """
 import html, json, os, re, sys
 
@@ -21,6 +21,14 @@ for manifest, kind in BUILDS:
         name = (j.get("displayName") or d).replace("®", "").replace("™", "")
         watches.append({"id": d, "name": re.sub(r"\s+", " ", name).strip(), "kind": kind})
 watches.sort(key=lambda w: w["name"].lower())
+sys.path.insert(0, os.path.join(APP, "tools"))
+import region as RG
+regions = [{"id": k, "name": RG.REGIONS[k][2].title(), "first": RG.REGIONS[k][0], "last": RG.REGIONS[k][1],
+            "count": len(RG.species(k))} for k in RG.ORDER]
+# TW_SITE_REGIONS="kanto johto": only those (the ones already in the release)
+if os.environ.get("TW_SITE_REGIONS"):
+    keep = os.environ["TW_SITE_REGIONS"].split()
+    regions = [r for r in regions if r["id"] in keep]
 
 PAGE = r"""<!doctype html>
 <html lang="en">
@@ -28,7 +36,7 @@ PAGE = r"""<!doctype html>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>TamaWatch</title>
-<meta name="description" content="A virtual pet for Garmin watches that grows with how active you are. Free download for 105 watches.">
+<meta name="description" content="A virtual pet for Garmin watches that grows with how active you are. Seven regions, free download for 105 watches.">
 <style>
   :root {
     --bg: #f6f4ef; --card: #ffffff; --ink: #1d1b16; --muted: #5d5a52; --line: #e3dfd5;
@@ -57,6 +65,13 @@ PAGE = r"""<!doctype html>
   .btn { display: inline-block; background: var(--accent); color: var(--accent-ink);
          text-decoration: none; font-weight: 700; padding: 12px 20px; border-radius: 10px; }
   .btn[aria-disabled=true] { opacity: .45; pointer-events: none; }
+  .regions { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 8px; margin-top: 10px; }
+  .regions button { font: inherit; text-align: left; padding: 10px 12px; border-radius: 10px; cursor: pointer;
+         border: 1px solid var(--line); background: var(--bg); color: var(--ink); }
+  .regions button b { display: block; font-size: 17px; }
+  .regions button span { font-size: 13px; color: var(--muted); }
+  .regions button[aria-pressed=true] { border-color: var(--accent); box-shadow: inset 0 0 0 2px var(--accent); }
+  ul.plain { padding-left: 20px; margin: 8px 0; }
   .tabs { display: flex; gap: 8px; margin: 4px 0 12px; flex-wrap: wrap; }
   .tabs button { font: inherit; padding: 8px 14px; border-radius: 999px; cursor: pointer;
          border: 1px solid var(--line); background: var(--bg); color: var(--ink); }
@@ -82,8 +97,32 @@ PAGE = r"""<!doctype html>
     Free, for 105 watches.</p>
   </header>
 
-  <section class="card step" aria-labelledby="s1">
+  <section class="card" aria-labelledby="new">
+    <h2 id="new">New in version 1.1</h2>
+    <ul class="plain">
+      <li><b>Pick your region.</b> Kanto, Johto, Hoenn, Sinnoh, Unova, Kalos or Alola, one per app.</li>
+      <li><b>HP that carries over.</b> A bar under your partner's name: battles take it, it refills in 15 minutes.</li>
+      <li><b>Care counts in battle.</b> A hungry, dirty or unhappy partner misses more of its attacks.</li>
+      <li><b>Training games can find fruit</b>, one piece at most, now and then.</li>
+      <li><b>No alerts mid-workout.</b> Care reminders wait while you're recording an activity.</li>
+      <li><b>Recorded activities count again.</b> Watches that date them differently were skipping every workout; now each one pays.</li>
+      <li><b>Battle friends from any region.</b> Trades stay within one region.</li>
+      <li>A new page at the start of the game points you to the in-app <b>GUIDE</b>. Worth a read!</li>
+    </ul>
+  </section>
+
+  <section class="card step" aria-labelledby="s0">
     <span class="num">1</span>
+    <div>
+      <h2 id="s0">Choose your region</h2>
+      <p class="note">Each region is its own TamaWatch, with its own creatures and its own game, so trying another
+      never touches the one you have. <b>Kanto</b> is the original: installing it over an older TamaWatch keeps your game.</p>
+      <div id="regions" class="regions" role="group" aria-label="Region"></div>
+    </div>
+  </section>
+
+  <section class="card step" aria-labelledby="s1">
+    <span class="num">2</span>
     <div>
       <h2 id="s1">Find your watch</h2>
       <label for="watch" class="note">Your exact model is in the watch's settings, under System &gt; About.</label>
@@ -94,17 +133,18 @@ PAGE = r"""<!doctype html>
   </section>
 
   <section class="card step" aria-labelledby="s2">
-    <span class="num">2</span>
+    <span class="num">3</span>
     <div>
       <h2 id="s2">Download its file</h2>
       <p><a id="dl" class="btn" href="#" aria-disabled="true">Download TamaWatch</a></p>
       <p class="note">Each watch model has its own file; the one for another model won't start. After it downloads,
-      rename it to <code>TamaWatch.prg</code> (so a later update simply replaces it).</p>
+      rename it to <code>TamaWatch.prg</code> (so a later update simply replaces it). To keep two regions on one
+      watch, give the second its own name, such as <code>TamaWatch-johto.prg</code>.</p>
     </div>
   </section>
 
   <section class="card step" aria-labelledby="s3">
-    <span class="num">3</span>
+    <span class="num">4</span>
     <div>
       <h2 id="s3">Copy it onto the watch</h2>
       <div class="tabs" role="tablist">
@@ -135,7 +175,7 @@ PAGE = r"""<!doctype html>
   </section>
 
   <section class="card step" aria-labelledby="s4">
-    <span class="num">4</span>
+    <span class="num">5</span>
     <div>
       <h2 id="s4">Open it</h2>
       <p id="where" class="where">Pick your watch above to see where TamaWatch appears on it.</p>
@@ -146,6 +186,31 @@ PAGE = r"""<!doctype html>
             The guide in the menu explains everything else.</li>
       </ol>
     </div>
+  </section>
+
+  <section class="card" aria-labelledby="how">
+    <h2 id="how">How it plays</h2>
+    <details open><summary>HP</summary>
+      <p>The bar under your partner's name is its HP. Battles take it, and it keeps what's left: your next battle
+      (wild, gym or link) starts from there. A battle that costs 40% or more of its HP also costs some food, a
+      quarter of what it lost.</p>
+      <p>HP refills by itself, from empty to full in 15 minutes. Each fruit gives some back at once (its favourite
+      more), and so does every training game; a recorded activity gives back half the bar.</p></details>
+    <details><summary>Good care wins fights</summary>
+      <p>When food, hygiene or joy is under half, your partner's attacks miss more often: the lower they are, the
+      more it misses, up to 4 attacks in 10 when all three are empty. Feed it, bathe it and keep training.</p></details>
+    <details><summary>Fruit from training games</summary>
+      <p>The three training games on the football button sometimes turn up a piece of fruit: an apple, a blue berry
+      or an orange. One piece at most per game, and about one game in three.</p></details>
+    <details><summary>Your activities</summary>
+      <p>Every activity you record on the watch (5 minutes or more) fills your partner's joy, trains a stat
+      (running speed, cycling and swimming defence, strength attack) and gives back HP. Care alerts wait while
+      you're recording, so nothing buzzes mid-run.</p></details>
+    <details><summary>Regions, battles and trades</summary>
+      <p>Your watch holds one region. Link battles work with a friend playing any region: a creature your watch has
+      no picture of shows as an orb in its type's colours, and fights with its real types and moves. Trades need the
+      same region on both watches, because a creature can only live in its own region; the watch tells you so if
+      yours differ. Both watches need version 1.1 or newer.</p></details>
   </section>
 
   <section class="card" aria-labelledby="faq">
@@ -161,7 +226,11 @@ PAGE = r"""<!doctype html>
       "Nearby" play connects two watches directly but hasn't been tried on real watches yet.</p></details>
     <details><summary>Updating to a new version</summary>
       <p>Download the new file for your watch and replace the old <code>TamaWatch.prg</code> in <code>GARMIN/Apps</code>.
-      Your pet, team and progress are kept.</p></details>
+      Your pet, team and progress are kept. Before version 1.1 TamaWatch was Kanto only: choose Kanto to carry on
+      with that game.</p></details>
+    <details><summary>Switching region</summary>
+      <p>Another region is a separate app with its own new game: your game in the first region stays on the watch,
+      untouched, as long as you keep its file (or put it back later).</p></details>
     <details><summary>What does TamaWatch do with my data?</summary>
       <p>It reads your steps, activities, Body Battery and sleep on the watch to run the game, and sends nothing anywhere.
       The only exception is online battles and trades: their game messages (your pet's name, level and team) pass
@@ -181,6 +250,7 @@ PAGE = r"""<!doctype html>
 
 <script>
 const WATCHES = __WATCHES__;
+const REGIONS = __REGIONS__;
 const REPO = "__REPO__";
 const WHERE = {
   widget: "On this watch TamaWatch is a <b>widget</b>: scroll the widget list from the watch face (UP / DOWN) and select it.",
@@ -188,6 +258,21 @@ const WHERE = {
   app: "On this watch TamaWatch opens from the <b>apps list</b> (START on the watch face, or the Activities &amp; Apps menu)."
 };
 const sel = document.getElementById("watch"), dl = document.getElementById("dl"), where = document.getElementById("where");
+let region = REGIONS[0];
+const rbox = document.getElementById("regions");
+for (const r of REGIONS) {
+  const b = document.createElement("button");
+  b.type = "button"; b.dataset.region = r.id;
+  b.innerHTML = "<b>" + r.name + "</b><span>" + r.count + " creatures · #" + r.first + "–" + r.last + "</span>";
+  b.addEventListener("click", () => pickRegion(r));
+  rbox.appendChild(b);
+}
+function pickRegion(r) {
+  region = r;
+  for (const b of rbox.querySelectorAll("button")) b.setAttribute("aria-pressed", b.dataset.region === r.id ? "true" : "false");
+  try { localStorage.setItem("tamawatch-region", r.id); } catch (e) {}
+  choose(WATCHES.find(w => w.id === sel.value));
+}
 
 // a dropdown, the watches grouped by family
 const FAMILIES = ["Approach", "D2", "Descent", "Enduro", "epix", "fenix", "Forerunner", "Instinct", "MARQ", "Venu", "vivoactive"];
@@ -213,9 +298,9 @@ function choose(w) {
     return;
   }
   sel.value = w.id;
-  dl.href = "https://github.com/" + REPO + "/releases/latest/download/TamaWatch-" + w.id + ".prg";
+  dl.href = "https://github.com/" + REPO + "/releases/latest/download/TamaWatch-" + region.id + "-" + w.id + ".prg";
   dl.setAttribute("aria-disabled", "false");
-  dl.textContent = "Download TamaWatch for " + w.name.split(" / ")[0];
+  dl.textContent = "Download TamaWatch " + region.name + " for " + w.name.split(" / ")[0];
   where.innerHTML = WHERE[w.kind];
   try { localStorage.setItem("tamawatch-watch", w.id); } catch (e) {}
 }
@@ -227,15 +312,17 @@ for (const t of document.querySelectorAll("[role=tab]")) {
   });
 }
 if (/Mac/.test(navigator.platform)) document.querySelector("[data-tab=mac]").click();
-let saved = null;
-try { saved = localStorage.getItem("tamawatch-watch"); } catch (e) {}
-choose(WATCHES.find(w => w.id === saved));
+let saved = null, savedRegion = null;
+try { saved = localStorage.getItem("tamawatch-watch"); savedRegion = localStorage.getItem("tamawatch-region"); } catch (e) {}
+const sw = WATCHES.find(w => w.id === saved);
+if (sw) sel.value = sw.id;
+pickRegion(REGIONS.find(r => r.id === savedRegion) || REGIONS[0]);
 </script>
 </body>
 </html>
 """
 
-page = PAGE.replace("__WATCHES__", json.dumps(watches, ensure_ascii=False)).replace("__REPO__", REPO)
+page = PAGE.replace("__WATCHES__", json.dumps(watches, ensure_ascii=False)).replace("__REGIONS__", json.dumps(regions)).replace("__REPO__", REPO)
 os.makedirs(os.path.join(APP, "docs"), exist_ok=True)
 open(os.path.join(APP, "docs", "index.html"), "w", encoding="utf-8").write(page)
 print(len(watches), "watches on the page")

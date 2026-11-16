@@ -11,6 +11,8 @@ Run after make_sprites.py (which keeps these keys when it rewrites the JSON).
 """
 import json, os, sys, xml.etree.ElementTree as ET
 from PIL import Image
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+import region as R
 
 SRC, APP = sys.argv[1], sys.argv[2]
 CELL = 40
@@ -57,11 +59,11 @@ def runs(fr):
     return out
 
 total = 0
-for n in range(1, 152):
-    p = os.path.join(APP, "resources", "jsondata", "d%03d.json" % n)
+for k in range(1, R.COUNT + 1):
+    p = os.path.join(APP, "resources", "jsondata", "d%03d.json" % k)
     meta = json.load(open(p))
-    meta["g"] = runs(frame_of(n, False))
-    meta["gs"] = runs(frame_of(n, True))
+    meta["g"] = runs(frame_of(R.nat(k), False))
+    meta["gs"] = runs(frame_of(R.nat(k), True))
     total += len(meta["g"]) + len(meta["gs"])
     json.dump(meta, open(p, "w"), separators=(",", ":"))
-print("glance thumbs: 151 species, %d runs, avg %d per thumb" % (total, total / 302))
+print("glance thumbs: %d species, %d runs" % (R.COUNT, total))

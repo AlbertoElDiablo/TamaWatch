@@ -11,7 +11,9 @@ import json, os, sys
 from PIL import Image
 
 APP = sys.argv[1]
-for n in range(1, 152):
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+import region as R
+for n in range(1, R.COUNT + 1):
     jp = os.path.join(APP, "resources", "jsondata", "d%03d.json" % n)
     meta = json.load(open(jp))
     a = meta["idle"]

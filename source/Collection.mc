@@ -103,7 +103,7 @@ class GalleryView extends WatchUi.View {
     function page() { return at / PER; }
     function pages() { return (Dex.COUNT + PER - 1) / PER; }
 
-    // Thumbnail n (1-151) from the colour or silhouette atlas, its cell at (x, y).
+    // Thumbnail n (1-Dex.COUNT) from the colour or silhouette atlas, its cell at (x, y).
     function drawThumb(dc, n, x, y, sil) {
         var ox = x + (CELL - THUMB) / 2;
         var oy = y + (CELL - THUMB) / 2;
@@ -122,7 +122,7 @@ class GalleryView extends WatchUi.View {
         dc.fillRectangle(0, 0, dc.getWidth(), dc.getHeight());   // the background fills the screen
         if (detail) { drawDetail(dc, cx); return; }
         dc.setColor(0x000000, Graphics.COLOR_TRANSPARENT);
-        dc.drawText(cx, 26, UiFont.mid(), Tr.t("KANTO ") + model.registeredCount() + "/151", Graphics.TEXT_JUSTIFY_CENTER);
+        dc.drawText(cx, 26, UiFont.mid(), Region.t("KANTO ") + model.registeredCount() + "/" + Dex.COUNT, Graphics.TEXT_JUSTIFY_CENTER);
         for (var k = 0; k < PER; k++) {
             var n = page() * PER + k + 1;
             if (n > Dex.COUNT) { break; }

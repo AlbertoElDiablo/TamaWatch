@@ -387,6 +387,37 @@ class PetView extends WatchUi.View {
         if (picking) { drawPicker(dc, w, h); }
     }
 
+    // The pet's HP under its name (as wide as the name and level): a dark plate, "HP" in pixel letters and the bar
+    // (green, yellow under half, red under a fifth), as in a battle. Battles take it, time,
+    // food, a recorded activity and the training games give it back.
+    var hpY = 46;                      // set by drawHeader: under the name
+    const HP_LETTERS = [[0, 0, 2, 7], [4, 0, 2, 7], [2, 3, 2, 1],                   // H
+                        [8, 0, 2, 7], [10, 0, 3, 1], [10, 3, 3, 1], [12, 1, 2, 2]];  // P
+    function drawHpBar(dc, cx, w) {
+        var pct = Hp.now(model);
+        var x = cx - w / 2;
+        var y = hpY;
+        dc.setColor(0x000000, Graphics.COLOR_TRANSPARENT);
+        dc.fillRoundedRectangle(x, y, w, 10, 4);
+        dc.setColor(0x555555, Graphics.COLOR_TRANSPARENT);   // its edge, readable on any scene
+        dc.drawRoundedRectangle(x, y, w, 10, 4);
+        dc.setColor(0xFFAA00, Graphics.COLOR_TRANSPARENT);
+        for (var i = 0; i < HP_LETTERS.size(); i++) {
+            var r = HP_LETTERS[i];
+            dc.fillRectangle(x + 5 + r[0], y + 2 + r[1] * 6 / 7, r[2], r[3] == 7 ? 6 : r[3]);
+        }
+        var bx = x + 22;
+        var bw = w - 26;
+        dc.setColor(0x555555, Graphics.COLOR_TRANSPARENT);
+        dc.fillRectangle(bx, y + 3, bw, 4);
+        var fw = bw * pct / 100;
+        if (fw < 1 && pct > 0) { fw = 1; }
+        if (fw > 0) {
+            dc.setColor(pct > 50 ? 0x00FF00 : (pct > 20 ? 0xFFFF00 : 0xFF0000), Graphics.COLOR_TRANSPARENT);
+            dc.fillRectangle(bx, y + 3, fw, 4);
+        }
+    }
+
     // TamaPoke's header: the time, a battery and the menu glyph; the name and level in large
     // capitals in the species' colour; the status line under it.
     function drawHeader(dc, cx) {
@@ -401,8 +432,19 @@ class PetView extends WatchUi.View {
         var font = Fit.font(dc, title, 130, [Graphics.FONT_SMALL, Graphics.FONT_TINY]);
         if (dc.getTextWidthInPixels(title, font) > 150) { font = Graphics.FONT_XTINY; }
         var fy = 24 + (dc.getFontHeight(Graphics.FONT_SMALL) - dc.getFontHeight(font)) / 2;
-        outlined(dc, cx, fy, font, Fit.trim(dc, title, 150, font), col);
-        outlined(dc, cx, 46, Graphics.FONT_XTINY, statusLine(), Graphics.COLOR_WHITE);
+        var shown = Fit.trim(dc, title, 150, font);
+        outlined(dc, cx, fy, font, shown, col);
+        // the pet's HP bar right under its name and level, as wide as them (an egg has none),
+        // 2 px below the letters (their ascent: capitals and digits have no descent); the status
+        // line follows it
+        var sy = 46;
+        if (!model.isEgg() && model.ceremony == model.CER_NONE) {
+            var tw = dc.getTextWidthInPixels(shown, font);
+            hpY = fy + dc.getFontAscent(font) + 4;
+            drawHpBar(dc, cx, tw < 70 ? 70 : tw);
+            sy = hpY + 10;
+        }
+        outlined(dc, cx, sy, Graphics.FONT_XTINY, statusLine(), Graphics.COLOR_WHITE);
     }
 
     function statusLine() {
@@ -429,7 +471,7 @@ class PetView extends WatchUi.View {
     }
 
     // A message in a white pill; too wide for the round screen, it wraps onto two lines.
-    const BANNER_Y = 64;
+    const BANNER_Y = 84;                // under the status line (which the HP bar moved down)
     function drawBanner(dc, cx, text) {
         var maxW = 200;
         var lines = [text];
@@ -475,7 +517,7 @@ class PetView extends WatchUi.View {
         if (cardPage == 4) { drawBadgeCase(dc, cx); return; }
         if (model.isEgg()) {
             var tiers = ["", Tr.t("Common egg"), Tr.t("Rare egg"), Tr.t("Legendary egg")];
-            lines = [tiers[model.eggRarity()], Tr.t("Pokedex ") + model.registeredCount() + "/151",
+            lines = [tiers[model.eggRarity()], Tr.t("Pokedex ") + model.registeredCount() + "/" + Dex.COUNT,
                      model.eggNeed > 0 ? Tr.t("Steps ") + model.eggSteps + "/" + model.eggNeed : Tr.t("Tap to hatch"),
                      Tr.t("Active weeks ") + model.streak + Tr.t(" (best ") + model.bestStreak + ")"];
         } else if (cardPage == 0) {
@@ -486,7 +528,7 @@ class PetView extends WatchUi.View {
                      Tr.t("EXP ") + model.exp + Tr.t("   week ") + model.weekPct() + "%",
                      Tr.t("Slip-ups ") + model.careMistakes + (model.evoPen > 0 ? Tr.t("  evolves a day later") : ""),
                      Tr.t("Fav. fruit: ") + (model.berryKnown ? Tr.t(FOOD_NAMES[model.dex % 3]) : "?"),
-                     Tr.t("Pokedex ") + model.registeredCount() + "/151"];
+                     Tr.t("Pokedex ") + model.registeredCount() + "/" + Dex.COUNT];
         } else if (cardPage == 1) {
             lines = [Tr.t("ATK ") + model.atkStat() + Tr.t("  (IV ") + model.ivAtk + Tr.t(", tr ") + model.trAtk + ")",
                      Tr.t("DEF ") + model.defStat() + Tr.t("  (IV ") + model.ivDef + Tr.t(", tr ") + model.trDef + ")",
@@ -498,7 +540,7 @@ class PetView extends WatchUi.View {
                 lines.add((model.hasMedal(1 << i) ? "[x] " : "[ ] ") + Tr.t(model.MEDAL_NAMES[i]));
             }
         } else {
-            lines = [Tr.t("Pokedex ") + model.registeredCount() + "/151",
+            lines = [Tr.t("Pokedex ") + model.registeredCount() + "/" + Dex.COUNT,
                      Tr.t("Badges ") + model.badgeCount(false) + Tr.t("/8   hard ") + model.badgeCount(true) + "/8",
                      Tr.t("Best active streak ") + model.bestStreak + Tr.t(" wk"),
                      Tr.t("Medals earned ") + model.totalMedals,
@@ -538,7 +580,7 @@ class PetView extends WatchUi.View {
         }
         dc.setColor(UI_INK, Graphics.COLOR_TRANSPARENT);
         var lines = [Tr.t("ACTIVE WEEKS ") + model.streak + Tr.t("  best ") + model.bestStreak,
-                     Tr.t("POKEDEX ") + model.registeredCount() + "/151",
+                     Tr.t("POKEDEX ") + model.registeredCount() + "/" + Dex.COUNT,
                      Tr.t("PARTY ") + model.party.size() + "/6"];
         for (var k = 0; k < lines.size(); k++) {
             dc.drawText(cx, 172 + k * 18, Graphics.FONT_XTINY, lines[k], Graphics.TEXT_JUSTIFY_CENTER);
@@ -899,9 +941,9 @@ class PetView extends WatchUi.View {
                 dc.drawText(w / 2, capY(Graphics.FONT_XTINY, DOCK_TOP + 10), Graphics.FONT_XTINY, t, Graphics.TEXT_JUSTIFY_CENTER);
             }
             dc.setColor(ink(), Graphics.COLOR_TRANSPARENT);
-            dc.drawText(w / 2, capY(Graphics.FONT_SMALL, DOCK_TOP + 28), Graphics.FONT_SMALL, Tr.t("POKEDEX ") + model.registeredCount() + "/151", Graphics.TEXT_JUSTIFY_CENTER);
+            dc.drawText(w / 2, capY(Graphics.FONT_SMALL, DOCK_TOP + 28), Graphics.FONT_SMALL, Tr.t("POKEDEX ") + model.registeredCount() + "/" + Dex.COUNT, Graphics.TEXT_JUSTIFY_CENTER);
             dc.setColor(0xFFFFFF, Graphics.COLOR_TRANSPARENT);
-            var pill = Tr.t("KANTO EGG");                  // as wide as its words, in any language
+            var pill = Region.t("KANTO EGG");                  // as wide as its words, in any language
             var pw = dc.getTextWidthInPixels(pill, Graphics.FONT_XTINY) + 24;
             if (pw > 170) { pw = 170; }
             dc.fillRoundedRectangle(w / 2 - pw / 2, DOCK_TOP + 44, pw, 22, 7);

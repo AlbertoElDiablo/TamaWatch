@@ -57,7 +57,7 @@ class LinkClient {
     var lastError = 0;
 
     function initialize(code, isHost, handlerTarget) {
-        topic = "tamawatch-v1-" + code + "-k7q2";
+        topic = "tamawatch-v1-" + code + "-k7q2";       // every region meets in the same rooms
         role = isHost ? "H" : "G";
         target = handlerTarget;
     }

@@ -3,8 +3,9 @@
 A virtual pet for Garmin watches that grows with how active you are. A Garmin Connect IQ port of
 [TamaPoke](https://github.com/socquique/TamaPoke), reworked around your watch's own data.
 
-**Install it:** pick your watch on the download page, **https://albertoeldiablo.github.io/TamaWatch/**,
-and follow the steps there. It runs on 105 Garmin watch models.
+**Install it:** pick your region and your watch on the download page,
+**https://albertoeldiablo.github.io/TamaWatch/**, and follow the steps there. It runs on 105 Garmin
+watch models.
 
 > Unofficial, non-commercial fan project. Not affiliated with or endorsed by Nintendo, Game Freak,
 > The Pokémon Company or Garmin. Pokémon names and characters are © Nintendo / Game Freak / The
@@ -18,16 +19,30 @@ and follow the steps there. It runs on 105 Garmin watch models.
 - **It lives your day.** Its energy is your Body Battery and it sleeps when you do. Feed it, bathe
   it, clean up after it.
 - **Eggs from walking.** Every 15,000 steps earn an egg (at most 2 a week); walk more to hatch it.
-- **A team and a pet box.** Your partner plus 5 in the team, the rest in the box; 151 to collect
-  in the Pokédex.
+- **A team and a pet box.** Your partner plus 5 in the team, the rest in the box.
+- **One region per watch.** Pick Kanto (151), Johto (100), Hoenn (135), Sinnoh (107), Unova (143),
+  Kalos (71) or Alola (84) on the download page. Each region is its own app with its own game, so
+  you can switch, or keep two, without losing anything. Kanto is the version TamaWatch always had:
+  installing it over an older TamaWatch keeps your game.
+- **HP that carries over.** The bar under your partner's name is its HP. Battles take it and it
+  keeps what's left, so your next battle starts from there; a battle that costs 40 % or more of it
+  also costs some food. HP refills by itself from empty in 15 minutes; each fruit and each training
+  game gives some back at once, and a recorded activity gives back half.
+- **Good care wins fights.** When food, hygiene or joy is under half, your partner's attacks miss
+  more often (up to 4 in 10 with all three empty).
+- **Training games find fruit.** Now and then (about 1 game in 3) a training game turns up one
+  apple, blue berry or orange.
+- **Quiet while you train.** Care alerts wait while you're recording an activity.
 - **Battles.** Wild battles, 8 gyms with our own leaders and badges (easy or hard; hard gyms need
-  some Body Battery), and link battles with a friend.
-- **Trading.** Swap team members with a friend.
+  some Body Battery), and link battles with a friend, **whatever region each of you plays** (a
+  creature your watch has no picture of is shown as an orb in its type's colours).
+- **Trading.** Swap team members with a friend who plays the same region (a creature only lives
+  in its own region; the watch explains this if your regions differ).
 - **7 languages:** Català, Deutsch, English, Español, Français, Italiano, Português.
 
 ### Playing with a friend
 
-Link battles and trades connect two watches either **online** (each watch posts short messages to
+Both watches need this version (or newer). Link battles and trades connect two watches either **online** (each watch posts short messages to
 a public [ntfy.sh](https://ntfy.sh) topic named by a 4-letter room code, through the paired phone)
 or **nearby** (watch to watch over ANT, no phone; still untested on real watches). Online, the
 pet's name, level and team pass through ntfy.sh's public servers while you play.
@@ -75,3 +90,7 @@ tools/build_all.sh                 # every supported watch into bin/devices/<wat
   `source/Sdc.mc`. After changing any picture or text, run `python3 tools/make_lang.py .` and
   `python3 tools/make_scaled.py .`.
 - Connect IQ allows 254 bitmaps per app and TamaWatch uses all of them.
+- Regions: `python3 tools/make_region.py <kanto|johto|hoenn|sinnoh|unova|kalos|alola> <TamaPoke repo>
+  <SpriteCollab-master>` turns the copy into that region's build (species, sprites, moves, gym
+  teams, app id), then run `make_scaled.py` and build. `tools/make_release.sh` does every region
+  and every watch into `bin/release/TamaWatch-<region>-<watch>.prg`.

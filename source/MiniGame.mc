@@ -99,7 +99,9 @@ class MiniGameView extends WatchUi.View {
         if (mode == BAG) { gain = model.trainStrength(score); }
         else if (mode == DODGE) { gain = model.trainSpeed(score); }
         else { gain = model.playResult(score); }
+        found = Hp.afterGame(model);
     }
+    var found = -1;             // the fruit found during the game (-1: none)
 
     // ---------- bag: the period speeds up from 1.5 s to 1.0 s ----------
 
@@ -257,6 +259,11 @@ class MiniGameView extends WatchUi.View {
         var stat = [Tr.t("STRENGTH"), Tr.t("SPEED"), Tr.t("DEFENSE")];
         dc.drawText(cx, 80, Graphics.FONT_MEDIUM, score + Tr.t(" points"), Graphics.TEXT_JUSTIFY_CENTER);
         dc.drawText(cx, 120, Graphics.FONT_SMALL, gain > 0 ? stat[mode] + " +" + gain : Tr.t("No training gained"), Graphics.TEXT_JUSTIFY_CENTER);
+        if (found >= 0) {
+            var fruit = [Tr.t("Found an apple!"), Tr.t("Found a blue berry!"), Tr.t("Found an orange!")];
+            dc.setColor(0x00AA00, Graphics.COLOR_TRANSPARENT);
+            dc.drawText(cx, 152, Graphics.FONT_XTINY, fruit[found], Graphics.TEXT_JUSTIFY_CENTER);
+        }
         dc.setColor(TEXT_GREY, Graphics.COLOR_TRANSPARENT);
         dc.drawText(cx, 200, Graphics.FONT_XTINY, Tr.t("START"), Graphics.TEXT_JUSTIFY_CENTER);
     }

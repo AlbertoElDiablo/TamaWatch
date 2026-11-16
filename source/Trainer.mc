@@ -45,7 +45,7 @@ class SetupView extends WatchUi.View {
     var model;
     var stage = 0;
     var intro = 0;
-    var petView = null;     // the home screen underneath, so BACK can lead out of the app          // stage 0 has three pages: welcome, training, battles
+    var petView = null;     // the home screen underneath, so BACK can lead out of the app          // stage 0 has four pages: welcome, training, battles, the guide
     var name = "";
     var at = 1;
     var gender = 0;
@@ -67,7 +67,7 @@ class SetupView extends WatchUi.View {
         var w = dc.getWidth();
         var cx = w / 2;
         var titles = [Tr.t("WELCOME!"), Tr.t("YOUR NAME"), Tr.t("CHARACTER"), Tr.t("TRAININGS"), Tr.t("ALL SET!")];
-        var introTitles = [Tr.t("WELCOME!"), Tr.t("TRAINING"), Tr.t("BATTLES")];
+        var introTitles = [Tr.t("WELCOME!"), Tr.t("TRAINING"), Tr.t("BATTLES"), Tr.t("GUIDE")];
         drawDisc(dc, stage == 0 ? introTitles[intro] : titles[stage]);
         dc.setColor(0x000000, Graphics.COLOR_TRANSPARENT);
         var f = UiFont.tiny();
@@ -85,11 +85,11 @@ class SetupView extends WatchUi.View {
                 }
             }
             // page dots, then the button underneath
-            for (var i = 0; i < 3; i++) {
+            for (var i = 0; i < 4; i++) {
                 dc.setColor(0x000000, Graphics.COLOR_TRANSPARENT);
-                if (i == intro) { dc.fillCircle(cx - 10 + i * 10, 186, 3); } else { dc.drawCircle(cx - 10 + i * 10, 186, 3); }
+                if (i == intro) { dc.fillCircle(cx - 15 + i * 10, 186, 3); } else { dc.drawCircle(cx - 15 + i * 10, 186, 3); }
             }
-            drawOk(dc, cx, 196, intro < 2 ? Tr.t("NEXT") : Tr.t("START"));
+            drawOk(dc, cx, 196, intro < 3 ? Tr.t("NEXT") : Tr.t("START"));
         } else if (stage == 1) {
             dc.drawText(cx, 62, UiFont.mid(), (name.length() > 0 ? name : "") + "_", Graphics.TEXT_JUSTIFY_CENTER);
             // the letter wheel: each letter centred on its row, the chosen one in its box
@@ -152,7 +152,8 @@ class SetupView extends WatchUi.View {
     const INTRO = [
         Tr.t("Your adventure starts here! TamaWatch keeps you active, with your partner always by your side. Walk, run and train: it grows with you."),
         Tr.t("Every activity you record makes your partner stronger:"),
-        Tr.t("Battle wild creatures, earn the badges of 8 gyms and challenge your friends, online or nearby. Ready?")];
+        Tr.t("Battle wild creatures, earn the badges of 8 gyms and challenge your friends, online or nearby. Ready?"),
+        Tr.t("New here? Read the GUIDE: it explains HP, food, eggs, battles and more. Hold UP, or pick the book, and choose GUIDE.")];
     const STAT_COL = [0x0055AA, 0x00AA00, 0xFF0000];
 
     // Text wrapped to the round screen's width at each line, centred; returns the y below it.
@@ -228,7 +229,7 @@ class SetupDelegate extends WatchUi.BehaviorDelegate {
             v.model.setTrainer(v.name, v.gender, v.perWeek);
             WatchUi.popView(WatchUi.SLIDE_LEFT);
             return true;
-        } else if (v.stage == 0 && v.intro < 2) {
+        } else if (v.stage == 0 && v.intro < 3) {
             v.intro++;                      // the next page of the welcome
         } else {
             v.stage++;
@@ -819,6 +820,7 @@ function makePartner(m, idx) {
     m.evoDeclinedLv = 0;
     m.berryKnown = false;
     m.pendingAnim = 3;
+    Hp.set(m, 100);                       // a rested partner steps in
     m.say(m.name() + Tr.t(" is your partner!"), 3000);
     m.save();
 }

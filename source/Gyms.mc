@@ -49,10 +49,10 @@ class GymView extends WatchUi.View {
             dc.drawText(cx, 34, UiFont.mid(), Tr.t("GYMS"), Graphics.TEXT_JUSTIFY_CENTER);
             rowBox(dc, Fit.COL_X, 76, Fit.COL_W, 38, sel == 0, BG);
             dc.setColor(INK, Graphics.COLOR_TRANSPARENT);
-            dc.drawText(Fit.COL_X + 10, capY(UiFont.small(), 95), UiFont.small(), Tr.t("KANTO"), Graphics.TEXT_JUSTIFY_LEFT);
+            dc.drawText(Fit.COL_X + 10, capY(UiFont.small(), 95), UiFont.small(), Region.t("KANTO"), Graphics.TEXT_JUSTIFY_LEFT);
             dc.setColor(TEXT_GREY, Graphics.COLOR_TRANSPARENT);
             var bc = Tr.t("BADGES ") + model.badgeCount(false) + "/8";       // just the count if the word won't fit
-            var room = Fit.COL_W - 28 - dc.getTextWidthInPixels("KANTO", UiFont.small());
+            var room = Fit.COL_W - 28 - dc.getTextWidthInPixels(Region.t("KANTO"), UiFont.small());
             if (dc.getTextWidthInPixels(bc, UiFont.tiny()) > room) { bc = model.badgeCount(false) + "/8"; }
             dc.drawText(Fit.COL_X + Fit.COL_W - 10, capY(UiFont.tiny(), 95), UiFont.tiny(), bc, Graphics.TEXT_JUSTIFY_RIGHT);
             rowBox(dc, Fit.COL_X, 126, Fit.COL_W, 38, sel == 1, BG);
@@ -62,7 +62,7 @@ class GymView extends WatchUi.View {
             dc.drawText(cx, 236, UiFont.tiny(), Tr.t("BACK"), Graphics.TEXT_JUSTIFY_CENTER);
             return;
         }
-        var gt = Tr.t("KANTO GYMS");                     // a size smaller if the language needs it
+        var gt = Region.t("KANTO GYMS");                     // a size smaller if the language needs it
         var gf = Fit.font(dc, gt, 176, [UiFont.mid(), UiFont.small(), UiFont.tiny()]);
         dc.drawText(cx, 24, gf, Fit.trim(dc, gt, 176, gf), Graphics.TEXT_JUSTIFY_CENTER);
         rowBox(dc, cx - 38, 58, 76, 22, sel == 0, TRACK);

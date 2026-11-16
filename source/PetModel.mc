@@ -24,6 +24,31 @@ module Lvl {
     }
 }
 
+// HP (PetModel.hpNow): empty to full by itself in 15 minutes; what food, a training game and a
+// recorded activity give back at once (a favourite fruit 10 more, candy half).
+const HP_FULL_SEC = 900;
+const HP_FRUIT = 20;
+const HP_GAME = 25;
+const HP_WORKOUT = 50;
+
+var workoutsRead = 0;            // when PetModel.claimWorkouts last read the history (UTC epoch)
+
+// Recorded activities' start times come in the watch's own clock, counted from 31 Dec 1989
+// (Garmin's epoch) on many watches rather than from 1970: read as 1970 time they look 20 years
+// old and were never paid. Anything before 2014 in 1970 time is that clock: move it over.
+function actStart(st) {
+    return st < 1388534400 ? st + 631065600 : st;
+}
+
+// Hungry, dirty or unhappy, it fights badly: every attack has this extra chance (%) to miss.
+// Each of FOOD, HYG and JOY under 50 adds up to 15 (at 0); together at most 40.
+function careMissPct(p) {
+    var m = 0;
+    var v = [p.food, p.hygiene, p.joy];
+    for (var i = 0; i < 3; i++) { if (v[i] < 50) { m += (50 - v[i]) * 3 / 10; } }
+    return m > 40 ? 40 : m;
+}
+
 class PetModel {
 
     // ---- tuning, as TamaPoke ----
@@ -166,6 +191,12 @@ class PetModel {
     var repWork = 0;
     var repSteps = 0;
     var repBag = [0, 0, 0, 0];
+
+    // ---- HP: what battles leave it with, saved under "hp" ----
+    // Lost in battle and kept afterwards: the next battle starts from it. It refills by itself
+    // from empty in 15 minutes; food, a recorded activity and the training games speed it up.
+    // (tuning: HP_FULL_SEC, HP_FRUIT, HP_GAME, HP_WORKOUT at the top of this file)
+    var hpv = [100, 0];         // HP (0-100 %) at the moment hpv[1] (UTC epoch); see Hp.mc
 
     // ---- the fruit bag: apples, blue berries, oranges, candy. Earned by being active ----
     var bag = [6, 1, 1, 1];
@@ -648,6 +679,7 @@ class PetModel {
     }
 
     function hatch() {
+        Hp.set(self, 100);
         dex = eggTarget;
         shiny = eggShiny;
         rollIVs();
@@ -793,8 +825,10 @@ class PetModel {
             if (!berryKnown) { say(Tr.t("It loves this one!"), 2500); }
             berryKnown = true;
             addBond(2);
+            Hp.heal(self, HP_FRUIT + 10);
         } else {
             food = clamp100(food + 25);
+            Hp.heal(self, HP_FRUIT);
         }
         startEating(color);
     }
@@ -806,6 +840,7 @@ class PetModel {
         food = clamp100(food + 10);
         joy = clamp100(joy + 2);
         weight = clamp100(weight + 12);
+        Hp.heal(self, HP_FRUIT / 2);
         startEating(FOOD_CANDY);
     }
 
@@ -1018,23 +1053,25 @@ class PetModel {
 
     // Each recorded activity pays once: joy (your weekly target's worth), bond, and training by
     // sport: running SPD, strength ATK, cycling/swimming DEF, anything else into a stat with room.
-    var workoutsRead = 0;
+
     function claimWorkouts() {
         if (!(Toybox has :UserProfile) || !(UserProfile has :getUserActivityHistory)) { return; }
         var nowS = Time.now().value();
-        if (workoutsRead != 0 && nowS - workoutsRead < 60) { return; }   // once a minute is plenty
-        workoutsRead = nowS;
+        if ($.workoutsRead != 0 && nowS - $.workoutsRead < 60) { return; }   // once a minute is plenty
+        $.workoutsRead = nowS;
         rollWeek();
         var it = UserProfile.getUserActivityHistory();
         if (it == null) { return; }
         var newest = actSeen;
         var got = [];
         var a = it.next();
-        for (var guard = 0; a != null && guard < 30; guard++) {
+        // the whole history (the watch keeps a few dozen; their order is not documented)
+        for (var guard = 0; a != null && guard < 200; guard++) {
             if (a.startTime != null && a.duration != null) {
-                var st = a.startTime.value();
-                if (st > actSeen) {
-                    got.add([a.type, a.duration.value() / 60]);
+                var st = actStart(a.startTime.value());
+                // paid once: newer than the last one paid, and not one still being recorded
+                if (st > actSeen && st <= nowS) {
+                    got.add([a.type, a.duration.value() / 60, a.distance]);
                     if (st > newest) { newest = st; }
                 }
             }
@@ -1073,6 +1110,7 @@ class PetModel {
                 gain = ([Tr.t("ATK"), Tr.t("DEF"), Tr.t("SPD")])[lastTrained] + " +" + g2;
             }
             addBond(3 + m / 20);
+            Hp.heal(self, HP_WORKOUT);
             msg = label + " " + m + Tr.t("m: JOY +") + (joy - before) + " " + gain;
         }
         saveTrainer();
@@ -1543,6 +1581,8 @@ class PetModel {
             box.add(party[party.size() - 1]);
             party = party.slice(0, party.size() - 1);
         }
+        var hs = Storage.getValue("hp") as Array?;
+        if (hs != null && hs.size() == 2) { hpv = hs; }
         var fresh = Storage.getValue("fit") == null;
         loadFit();
         if (fresh) { stepReadDay = today(); }

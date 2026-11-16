@@ -16,7 +16,10 @@ from PIL import Image
 
 APP = sys.argv[1]
 MARK = os.path.join(APP, "resources", ".colours_boosted")
-if os.path.exists(MARK):
+# --species: only what make_region.py regenerates (the creatures' sheets, shiny atlases and
+# thumbnails, their palettes, dex.json's accents and the glance runs); the rest stays boosted
+SPECIES = "--species" in sys.argv
+if os.path.exists(MARK) and not SPECIES:
     sys.exit("already boosted (delete %s after regenerating assets)" % MARK)
 
 def lvl(v):
@@ -34,7 +37,10 @@ def boost(rgb):
 # images
 n_png = 0
 cache = {}
-for f in glob.glob(os.path.join(APP, "resources", "drawables", "**", "*.png"), recursive=True):
+PNGS = glob.glob(os.path.join(APP, "resources", "drawables", "**", "*.png"), recursive=True)
+if SPECIES:
+    PNGS = [f for f in PNGS if os.path.basename(os.path.dirname(f)) in ("sprites", "shiny", "thumbs")]
+for f in PNGS:
     im = Image.open(f)
     mode = im.mode
     im = im.convert("RGBA")
@@ -62,6 +68,8 @@ def fix_palette(m):
     return head + "".join("<color>%s</color>" % c for c in cols) + "</palette>"
 
 for f in glob.glob(os.path.join(APP, "resources", "drawables", "*.xml")):
+    if SPECIES and os.path.basename(f) not in ("sprites.xml", "shiny.xml", "thumbs.xml"):
+        continue
     s = open(f).read()
     s = re.sub(r"<palette[^>]*>.*?</palette>", fix_palette, s)
     open(f, "w").write(s)
@@ -73,7 +81,7 @@ def fix_hex(m):
     return "0x%02X%02X%02X" % (r, g, b)
 
 n_src = 0
-for f in glob.glob(os.path.join(APP, "source", "*.mc")):
+for f in ([] if SPECIES else glob.glob(os.path.join(APP, "source", "*.mc"))):
     s = open(f).read()
     t = re.sub(r"\b0x([0-9A-Fa-f]{6})\b", fix_hex, s)
     if t != s:

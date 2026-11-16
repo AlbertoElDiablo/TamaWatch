@@ -22,6 +22,7 @@ class LinkView extends WatchUi.View {
     const S_OFFER = 8;    // trade: offered, waiting for the friend's offer
     const S_CONFIRM = 9;  // trade: both offers in: TRADE (or BACK to choose again)
     const S_TRADED = 10;  // trade: done
+    const S_REGION = 11;  // trade: the friend plays another region (battles still work)
     const MODE_ONLINE = 0;
     const MODE_NEARBY = 1;
 
@@ -41,6 +42,7 @@ class LinkView extends WatchUi.View {
     var theirs = "";      // the friend's squad
     var peerName = "";
     var peerCount = 0;
+    var peerRegion = "kanto";   // an older TamaWatch says nothing: it is Kanto
     var gotReady = false;
     var battle = null;
     var earlyAct = null;  // an ACT that arrived before this watch opened the fight
@@ -92,7 +94,7 @@ class LinkView extends WatchUi.View {
             code += LETTERS.substring(k, k + 1);
         }
         begin();
-        client.send("HELLO", myName() + "|" + mine);
+        client.send("HELLO", myName() + "|" + mine + "|" + Region.ID);
     }
 
     function startJoin() {
@@ -100,7 +102,7 @@ class LinkView extends WatchUi.View {
         code = "";
         for (var i = 0; i < 4; i++) { code += LETTERS.substring(entry[i], entry[i] + 1); }
         begin();
-        client.send("JOIN", myName() + "|" + mine);
+        client.send("JOIN", myName() + "|" + mine + "|" + Region.ID);
     }
 
     function begin() {
@@ -139,12 +141,14 @@ class LinkView extends WatchUi.View {
         if (type.equals("JOIN") && host && parts.size() >= 6) {
             peerName = parts[4];
             theirs = parts[5];
+            peerRegion = parts.size() >= 7 ? parts[6] : "kanto";
             peerCount = Wire.split(theirs, ";").size();
             client.send("READY", myName());
             ready();
         } else if (type.equals("HELLO") && !host && parts.size() >= 6) {
             peerName = parts[4];
             theirs = parts[5];
+            peerRegion = parts.size() >= 7 ? parts[6] : "kanto";
             peerCount = Wire.split(theirs, ";").size();
             if (gotReady) { ready(); }
         } else if (type.equals("READY") && !host) {
@@ -168,6 +172,7 @@ class LinkView extends WatchUi.View {
     // Both connected: a battle's FIGHT, or a trade's pick.
     function ready() {
         if (!trade) { state = S_READY; return; }
+        if (!peerRegion.equals(Region.ID)) { state = S_REGION; return; }   // no trading across regions
         resetOffers();
         pickIdx = 0;
         state = S_PICK;
@@ -295,6 +300,7 @@ class LinkView extends WatchUi.View {
         else if (state == S_OFFER || (state == S_CONFIRM && iAccepted)) { msg = Tr.t("Waiting for ") + peerName + "..."; }
         else if (state == S_CONFIRM) { msg = peerName; }
         else if (state == S_TRADED) { msg = Tr.t("Traded!"); }
+        else if (state == S_REGION) { msg = Tr.t("Can't trade"); msgCol = 0xFF0000; }
         dc.setColor(msgCol, Graphics.COLOR_TRANSPARENT);
         dc.drawText(cx, 52, UiFont.tiny(), msg, Graphics.TEXT_JUSTIFY_CENTER);
 
@@ -367,6 +373,25 @@ class LinkView extends WatchUi.View {
                 dc.drawText(cx, capY(UiFont.small(), 146), UiFont.small(), Fit.trim(dc, (theirOffer[2] ? "*" : "") + Trade.label(theirOffer), 180, UiFont.small()), Graphics.TEXT_JUSTIFY_CENTER);
                 if (!iAccepted) { button(dc, cx, 168, 136, Tr.t("TRADE"), true, 0x55FF55, INK); }
             }
+        } else if (state == S_REGION) {
+            // why: each region's watch only holds its own creatures
+            var why = Tr.f("{0} plays {1} and you play {2}. A creature can only live in its own region, so trades need the same one. You can still have a link battle!",
+                           [peerName, peerRegion.toUpper(), Region.NAME]);
+            var words = Wire.split(why, " ");
+            var y = 74;
+            var line = "";
+            dc.setColor(INK, Graphics.COLOR_TRANSPARENT);
+            for (var i = 0; i < words.size(); i++) {
+                var t = line.length() == 0 ? words[i] : line + " " + words[i];
+                if (line.length() > 0 && dc.getTextWidthInPixels(t, UiFont.tiny()) > Fit.span(y, 18, 210)[1] - 16) {
+                    dc.drawText(cx, capY(UiFont.tiny(), y + 9), UiFont.tiny(), line, Graphics.TEXT_JUSTIFY_CENTER);
+                    y += 18;
+                    line = words[i];
+                } else {
+                    line = t;
+                }
+            }
+            if (line.length() > 0) { dc.drawText(cx, capY(UiFont.tiny(), y + 9), UiFont.tiny(), line, Graphics.TEXT_JUSTIFY_CENTER); }
         } else if (state == S_TRADED) {
             if (traded != null) { memberCard(dc, cx, 74, traded, false); }
             dc.setColor(INK, Graphics.COLOR_TRANSPARENT);

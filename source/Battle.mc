@@ -18,6 +18,12 @@ class Combatant {
     var charging = 0;
     var name = "";
     var shiny = false;
+    var careMiss = 0;                // extra % to miss an attack: a hungry, dirty or unhappy pet
+    var t1 = 0;                      // its types (from the species table, or the wire)
+    var t2 = -1;
+    var foreign = false;             // a friend's creature from another region: no sprite here
+    var nat = 0;                     // national number
+    var region = "";
 
     function initialize() {}
     function fainted() { return hp == 0; }
@@ -63,7 +69,14 @@ module Battle {
         c.hp = c.maxHp;
         c.base = [a, d, sa, sd, sp];
         c.name = SpriteIndex.name(dex).toUpper();
+        var r = Dex.row(dex);
+        c.t1 = r[10];
+        c.t2 = r[11];
+        c.nat = Region.national(dex);
+        c.region = Region.ID;
     }
+
+    function hasType(c, t) { return c.t1 == t || c.t2 == t; }
 
     // cap > 0 fights at most at that level (TamaPoke's buildSquad level cap for a trainer).
     function fromPet(p, cap) {
@@ -77,6 +90,10 @@ module Battle {
         c.moves = [p.moves[0], p.moves[1], p.moves[2], p.moves[3]];
         c.shiny = p.shiny;
         if (p.nick.length() > 0) { c.name = p.nick.toUpper(); }
+        // it fights with the HP it has now, never less than 1
+        c.hp = c.maxHp * Hp.now(p) / 100;
+        if (c.hp < 1) { c.hp = 1; }
+        c.careMiss = careMissPct(p);
         return c;
     }
 
@@ -108,10 +125,13 @@ module Battle {
         return c;
     }
 
-    // A creature on the wire: dex,level,maxHp,atk,def,spa,spd,spe,m1,m2,m3,m4,shiny,name
+    // A creature on the wire: dex,level,maxHp,atk,def,spa,spd,spe,m1,m2,m3,m4,shiny,name,hp,careMiss,
+    // national number,type1,type2,region. dex is the number inside the sender's region. An older
+    // watch sends only the first 14 (Kanto, full HP, types from the table).
     function toWire(c) {
         return Wire.join([c.dex, c.level, c.maxHp, c.base[0], c.base[1], c.base[2], c.base[3], c.base[4],
-                          c.moves[0], c.moves[1], c.moves[2], c.moves[3], c.shiny ? 1 : 0, Wire.clean(c.name)], ",");
+                          c.moves[0], c.moves[1], c.moves[2], c.moves[3], c.shiny ? 1 : 0, Wire.clean(c.name),
+                          c.hp, c.careMiss, c.nat, c.t1, c.t2, c.region], ",");
     }
 
     function fromWire(s) {
@@ -119,15 +139,45 @@ module Battle {
         if (f.size() < 14) { return null; }
         var c = new Combatant();
         var dex = f[0].toNumber();
-        if (dex == null || dex < 1 || dex > Dex.COUNT) { return null; }
-        fill(c, dex, f[1].toNumber(), f[2].toNumber(), f[3].toNumber(), f[4].toNumber(), f[5].toNumber(),
-             f[6].toNumber(), f[7].toNumber());
+        var reg = f.size() >= 20 ? f[19] : "kanto";
+        if (!reg.equals(Region.ID)) {
+            // another region's creature: fights with its own numbers and types, drawn as a stand-in
+            var nt = f.size() >= 17 ? f[16].toNumber() : dex;
+            var a = f.size() >= 19 ? f[17].toNumber() : 0;
+            var b = f.size() >= 19 ? f[18].toNumber() : -1;
+            if (nt == null || a == null || b == null || a < 0 || a > 17 || b < -1 || b > 17) { return null; }
+            var lv = f[1].toNumber();
+            var mh = f[2].toNumber();
+            if (lv == null || mh == null || mh < 1) { return null; }
+            c.foreign = true;
+            c.dex = 0;
+            c.nat = nt;
+            c.region = reg;
+            c.t1 = a;
+            c.t2 = b;
+            c.level = lv;
+            c.maxHp = mh;
+            c.hp = mh;
+            c.base = [f[3].toNumber(), f[4].toNumber(), f[5].toNumber(), f[6].toNumber(), f[7].toNumber()];
+            for (var i = 0; i < 5; i++) { if (c.base[i] == null || c.base[i] < 1) { c.base[i] = 1; } }
+            c.name = "#" + nt;
+        } else {
+            if (dex == null || dex < 1 || dex > Dex.COUNT) { return null; }
+            fill(c, dex, f[1].toNumber(), f[2].toNumber(), f[3].toNumber(), f[4].toNumber(), f[5].toNumber(),
+                 f[6].toNumber(), f[7].toNumber());
+        }
         c.moves = [f[8].toNumber(), f[9].toNumber(), f[10].toNumber(), f[11].toNumber()];
         for (var i = 0; i < 4; i++) {
             if (c.moves[i] == null || c.moves[i] < 0 || c.moves[i] >= Moves.count()) { c.moves[i] = 0; }
         }
         c.shiny = f[12].equals("1");
         if (f[13].length() > 0) { c.name = f[13].toUpper(); }
+        if (f.size() >= 16) {
+            var h = f[14].toNumber();
+            var cm = f[15].toNumber();
+            if (h != null && h >= 1 && h <= c.maxHp) { c.hp = h; }
+            if (cm != null && cm >= 0 && cm <= 40) { c.careMiss = cm; }
+        }
         return c;
     }
 
@@ -237,8 +287,8 @@ module Battle {
         if (D == 0) { D = 1; }
         var dmg = (2 * atk.level / 5 + 2) * m[3] * A / D / 50 + 2;
         if (crit) { dmg *= 2; }
-        if (Moves.hasStab(atk.dex, m[1])) { dmg = dmg * 3 / 2; }
-        var eff = Moves.effVsDex(m[1], def.dex);
+        if (hasType(atk, m[1])) { dmg = dmg * 3 / 2; }
+        var eff = Moves.effVs(m[1], def.t1, def.t2);
         if (eff == 0) { return 0; }
         dmg = dmg * eff / 100;
         dmg = dmg * roll / 255;
@@ -311,6 +361,11 @@ module Battle {
         if (mv <= 0 || mv >= Moves.count()) { log.skipped = true; return log; }
         var m = Moves.get(mv);
         log.move = mv;
+        // a pet that is hungry, dirty or unhappy misses more of its attacks (any attack)
+        if (atk.careMiss > 0 && m[2] != Moves.MC_STATUS && rnd(100) < atk.careMiss) {
+            log.missed = true;
+            return log;
+        }
         if (m[4] > 0 && m[5] != Moves.EF_NEVER_MISS && rnd(100) >= m[4]) {
             log.missed = true;
             return log;
@@ -328,7 +383,7 @@ module Battle {
         }
         var hits = m[5] == Moves.EF_MULTI ? 2 + rnd(4) : 1;
         var total = 0;
-        log.effPct = Moves.effVsDex(m[1], def.dex);
+        log.effPct = Moves.effVs(m[1], def.t1, def.t2);
         if (log.effPct == 0) { log.immune = true; return log; }
         for (var h = 0; h < hits; h++) {
             var crit = rnd(16) == 0;
@@ -350,10 +405,10 @@ module Battle {
                     log.inflicted = Moves.AIL_CONFUSE;
                 }
             } else if (def.ailment == Moves.AIL_NONE) {
-                var immune = (m[10] == Moves.AIL_BURN && Moves.hasStab(def.dex, 1)) ||
-                             (m[10] == Moves.AIL_FREEZE && Moves.hasStab(def.dex, 5)) ||
-                             (m[10] == Moves.AIL_POISON && Moves.hasStab(def.dex, 7)) ||
-                             (m[10] == Moves.AIL_PARA && Moves.hasStab(def.dex, 3));
+                var immune = (m[10] == Moves.AIL_BURN && hasType(def, 1)) ||
+                             (m[10] == Moves.AIL_FREEZE && hasType(def, 5)) ||
+                             (m[10] == Moves.AIL_POISON && hasType(def, 7)) ||
+                             (m[10] == Moves.AIL_PARA && hasType(def, 3));
                 if (!immune) {
                     def.ailment = m[10];
                     if (m[10] == Moves.AIL_SLEEP) { def.ailTurns = 2 + rnd(3); }

@@ -68,9 +68,14 @@ module Moves {
     // Percent: 100 neutral, 200 super effective, 50 resisted, 0 immune (400 / 25 doubled up).
     function effVsDex(atkType, dex) {
         var r = Dex.row(dex);
+        return effVs(atkType, r[10], r[11]);
+    }
+
+    // The same against two types (t2 -1: single-typed): a creature from another region.
+    function effVs(atkType, t1, t2) {
         var fx = typeData()["fx"][atkType];
-        var e = fx[r[10]];
-        return e * (r[11] >= 0 ? fx[r[11]] : 10);
+        var e = fx[t1];
+        return e * (t2 >= 0 ? fx[t2] : 10);
     }
 
     // Same-type attack bonus: the move matches one of the user's types.

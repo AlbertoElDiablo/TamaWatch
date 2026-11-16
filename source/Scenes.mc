@@ -5,12 +5,12 @@ import Toybox.WatchUi;
 
 module Scenes {
 
-    // Biome per dex number 1-151 (0 meadow, 1 beach, 2 forest, 3 volcano,
+    // Biome per species of the region (0 meadow, 1 beach, 2 forest, 3 volcano,
     // 4 mountain, 5 snow, 6 graveyard), as TamaPoke assigns them by primary type.
     const BIOMES = "2223331112222220000000000044000000003300002222222440011003311100000022211444331100000110011666400110022440000044020111111025032011100103011114050311100";
 
     function biomeFor(dex) {
-        if (dex < 1 || dex > 151) { return 0; }   // eggs live in the meadow
+        if (dex < 1 || dex > Dex.COUNT) { return 0; }   // eggs live in the meadow
         return BIOMES.substring(dex - 1, dex).toNumber();
     }
 

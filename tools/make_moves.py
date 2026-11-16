@@ -63,8 +63,11 @@ json.dump({"fx": fx, "names": names, "colors": [rgb(c) for c in cols565]},
 # --- learnsets into each species' JSON ---
 learn = [(int(a), int(b)) for a, b in re.findall(r"\{\s*(\d+),\s*(\d+)\s*\}", moves_h[moves_h.index("LearnEntry LEARN_TBL[") :moves_h.index("uint16_t LEARN_OFS[")])]
 ofs = [int(x) for x in re.findall(r"\d+", moves_h[moves_h.index("uint16_t LEARN_OFS[") :].split("{", 1)[1].split("}", 1)[0])]
-for n in range(1, 152):
-    p = os.path.join(out, "d%03d.json" % n)
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+import region as R
+for k in range(1, R.COUNT + 1):
+    n = R.nat(k)
+    p = os.path.join(out, "d%03d.json" % k)
     d = json.load(open(p))
     flat = []
     for mv, lv in learn[ofs[n]:ofs[n + 1]]:
@@ -78,4 +81,4 @@ for rid in ("moves", "types"):
     if 'id="%s"' % rid not in s:
         s = s.replace("</resources>", '    <jsonData id="%s" filename="%s.json"/>\n</resources>' % (rid, rid))
 open(xml, "w").write(s)
-print("moves:", len(rows), "| types:", names[:4], "... | learnsets: 151 species, e.g. #1 has", (ofs[2] - ofs[1]), "entries")
+print("moves:", len(rows), "| learnsets:", R.COUNT, "species")

@@ -105,6 +105,12 @@ class Sdc {
         var i = Scr.fontIx(f);
         return i >= 0 && !Scr.sysFonts ? Scr.H280[i] : (Graphics.getFontHeight(f) / k).toNumber();
     }
+    // How far the capitals reach below a text's y: the fenix 6X's ascents (XTINY..NUMBER_MEDIUM,
+    // tools/make_scaled.py's FONTS), which the watch's own fonts are centred on too.
+    function getFontAscent(f) {
+        var i = Scr.fontIx(f);
+        return i >= 0 ? [15, 25, 27, 32, 34, 58][i] : (Graphics.getFontAscent(f) / k).toNumber();
+    }
     // Our fonts are the fenix 6X's at this scale: drawn at the scaled y. The watch's own fonts have
     // their own proportions: their capitals are centred where the fenix 6X's would be.
     function drawText(x, y, f, t, j) {

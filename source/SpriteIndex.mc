@@ -5,7 +5,7 @@ module SpriteIndex {
 
     const ANIMS = ["idle", "sleep", "eat", "hop", "hurt"];
 
-    // Sprite sheet for dex number n (1-151); frame layout in data(n).
+    // Sprite sheet for species n (1-151 of Kanto); frame layout in data(n).
     function sheet(n) {
         var ids = [
             Rez.Drawables.p001, Rez.Drawables.p002, Rez.Drawables.p003, Rez.Drawables.p004, Rez.Drawables.p005, Rez.Drawables.p006, Rez.Drawables.p007, Rez.Drawables.p008,

@@ -13,7 +13,9 @@ APP = sys.argv[1]
 T = 38
 im = Image.open(os.path.join(APP, "resources", "drawables", "thumbs", "thumbs.png")).convert("RGBA")
 dy = []
-for n in range(1, 152):
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+import region as R
+for n in range(1, R.COUNT + 1):
     x0, y0 = ((n - 1) % 16) * T, ((n - 1) // 16) * T
     bb = im.crop((x0, y0, x0 + T, y0 + T)).getchannel("A").getbbox()
     dy.append(0 if bb is None else round(T / 2 - (bb[1] + bb[3]) / 2))

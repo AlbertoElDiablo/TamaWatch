@@ -8,6 +8,8 @@ ink silhouette for species not raised yet. Thumb n (1-151) is at ((n-1) % 16, (n
 """
 import os, sys, xml.etree.ElementTree as ET
 from PIL import Image
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+import region as R
 
 SRC, APP = sys.argv[1], sys.argv[2]
 CELL = 38
@@ -18,10 +20,11 @@ INK = (0, 0, 0)
 def snap(v):
     return min(LEVELS, key=lambda x: abs(x - v))
 
-rows = -(-151 // COLS)
+rows = -(-R.COUNT // COLS)
 colour = Image.new("RGBA", (COLS * CELL, rows * CELL), (0, 0, 0, 0))
 sil = Image.new("RGBA", (COLS * CELL, rows * CELL), (0, 0, 0, 0))
-for n in range(1, 152):
+for k in range(1, R.COUNT + 1):
+    n = R.nat(k)
     d = os.path.join(SRC, "sprite", "%04d" % n)
     table = {a.findtext("Name"): a for a in ET.parse(os.path.join(d, "AnimData.xml")).getroot().iter("Anim")}
     name = "Idle"
@@ -32,11 +35,11 @@ for n in range(1, 152):
     fw, fh = int(anim.findtext("FrameWidth")), int(anim.findtext("FrameHeight"))
     frame = Image.open(os.path.join(d, name + "-Anim.png")).convert("RGBA").crop((0, 0, fw, fh))
     frame = frame.crop(frame.getbbox())
-    k = min(1.0, (CELL - 2) / max(frame.size))
-    if k < 1.0:
-        frame = frame.resize((max(1, round(frame.width * k)), max(1, round(frame.height * k))), Image.NEAREST)
-    x = ((n - 1) % COLS) * CELL + (CELL - frame.width) // 2
-    y = ((n - 1) // COLS) * CELL + (CELL - frame.height)        # stand on the cell's floor
+    sc = min(1.0, (CELL - 2) / max(frame.size))
+    if sc < 1.0:
+        frame = frame.resize((max(1, round(frame.width * sc)), max(1, round(frame.height * sc))), Image.NEAREST)
+    x = ((k - 1) % COLS) * CELL + (CELL - frame.width) // 2
+    y = ((k - 1) // COLS) * CELL + (CELL - frame.height)        # stand on the cell's floor
     px = frame.load()
     for j in range(frame.height):
         for i in range(frame.width):
@@ -54,4 +57,4 @@ for rid, im in (("thumbs", colour), ("thumbs_sil", sil)):
     pal = "".join("<color>%02X%02X%02X</color>" % c for c in cols)
     xml.append('    <bitmap id="%s" filename="thumbs/%s.png"><palette disableTransparency="false">%s</palette></bitmap>' % (rid, rid, pal))
 open(os.path.join(APP, "resources", "drawables", "thumbs.xml"), "w").write("<drawables>\n" + "\n".join(xml) + "\n</drawables>\n")
-print("thumbs: 151 in", colour.size, "colours", len({p[:3] for p in colour.getdata() if p[3]}))
+print("thumbs:", R.COUNT, "in", colour.size, "colours", len({p[:3] for p in colour.getdata() if p[3]}))

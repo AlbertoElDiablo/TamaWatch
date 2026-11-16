@@ -165,7 +165,3 @@ Pokemon sprites (normal and shiny) from the PMD SpriteCollab project (https://sp
 - #149 Dragonite: CHUNSOFT, Deeshura, SethY
 - #150 Mewtwo: CHUNSOFT, JFain
 - #151 Mew: CHUNSOFT, JFain
-
-## Font
-On watches other than the fenix 6X, text is drawn in Roboto Condensed Bold (Google, Apache License 2.0),
-rendered from the copy that ships with the Garmin Connect IQ SDK by tools/make_scaled.py.

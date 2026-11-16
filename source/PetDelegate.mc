@@ -122,7 +122,7 @@ class PetDelegate extends WatchUi.BehaviorDelegate {
         }
         if (!model.isEgg()) { rows.add([Tr.t("MOVES"), :moves, 0, -1]); }
         if (!model.isEgg()) { rows.add([Tr.t("RENAME"), :rename, 0, -1]); }
-        rows.add([Tr.t("POKEDEX ") + model.registeredCount() + "/151", :dex, 0, -1]);
+        rows.add([Tr.t("POKEDEX ") + model.registeredCount() + "/" + Dex.COUNT, :dex, 0, -1]);
         rows.add([Tr.t("SETTINGS"), :settings, 0, -1]);
         rows.add([Tr.t("GUIDE"), :guide, 0, -1]);
         rows.add([Tr.t("RESTART GAME"), :restart, 1, -1]);

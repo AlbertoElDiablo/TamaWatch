@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>TamaWatch</title>
-<meta name="description" content="A virtual pet for Garmin watches that grows with how active you are. Free download for 105 watches.">
+<meta name="description" content="A virtual pet for Garmin watches that grows with how active you are. Seven regions, free download for 105 watches.">
 <style>
   :root {
     --bg: #f6f4ef; --card: #ffffff; --ink: #1d1b16; --muted: #5d5a52; --line: #e3dfd5;
@@ -33,6 +33,13 @@
   .btn { display: inline-block; background: var(--accent); color: var(--accent-ink);
          text-decoration: none; font-weight: 700; padding: 12px 20px; border-radius: 10px; }
   .btn[aria-disabled=true] { opacity: .45; pointer-events: none; }
+  .regions { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 8px; margin-top: 10px; }
+  .regions button { font: inherit; text-align: left; padding: 10px 12px; border-radius: 10px; cursor: pointer;
+         border: 1px solid var(--line); background: var(--bg); color: var(--ink); }
+  .regions button b { display: block; font-size: 17px; }
+  .regions button span { font-size: 13px; color: var(--muted); }
+  .regions button[aria-pressed=true] { border-color: var(--accent); box-shadow: inset 0 0 0 2px var(--accent); }
+  ul.plain { padding-left: 20px; margin: 8px 0; }
   .tabs { display: flex; gap: 8px; margin: 4px 0 12px; flex-wrap: wrap; }
   .tabs button { font: inherit; padding: 8px 14px; border-radius: 999px; cursor: pointer;
          border: 1px solid var(--line); background: var(--bg); color: var(--ink); }
@@ -58,8 +65,33 @@
     Free, for 105 watches.</p>
   </header>
 
-  <section class="card step" aria-labelledby="s1">
+  <section class="card" aria-labelledby="new">
+    <h2 id="new">New in version 1.1</h2>
+    <ul class="plain">
+      <li><b>Pick your region.</b> Kanto, Johto, Hoenn, Sinnoh, Unova, Kalos or Alola, one per app.</li>
+      <li><b>HP that carries over.</b> A bar under your partner's name: battles take it, it refills in 15 minutes.</li>
+      <li><b>Care counts in battle.</b> A hungry, dirty or unhappy partner misses more of its attacks.</li>
+      <li><b>Training games can find fruit</b>, one piece at most, now and then.</li>
+      <li><b>No alerts mid-workout.</b> Care reminders wait while you're recording an activity.</li>
+      <li><b>Recorded activities count again.</b> Watches that date them differently were skipping every workout; now each one pays.</li>
+      <li><b>Battle friends from any region.</b> Trades stay within one region.</li>
+      <li>A new page at the start of the game points you to the in-app <b>GUIDE</b>. Worth a read!</li>
+    </ul>
+  </section>
+
+  <section class="card step" aria-labelledby="s0">
     <span class="num">1</span>
+    <div>
+      <h2 id="s0">Choose your region</h2>
+      <p class="note">Each region is its own TamaWatch, with its own creatures and its own game, so trying another
+      never touches the one you have. <b>Kanto</b> is the original: installing it over an older TamaWatch keeps your game.</p>
+      <div id="regions" class="regions" role="group" aria-label="Region"></div>
+      <p class="note">Sinnoh, Unova, Kalos and Alola are on their way: they'll appear here as soon as their files are up.</p>
+    </div>
+  </section>
+
+  <section class="card step" aria-labelledby="s1">
+    <span class="num">2</span>
     <div>
       <h2 id="s1">Find your watch</h2>
       <label for="watch" class="note">Your exact model is in the watch's settings, under System &gt; About.</label>
@@ -70,17 +102,18 @@
   </section>
 
   <section class="card step" aria-labelledby="s2">
-    <span class="num">2</span>
+    <span class="num">3</span>
     <div>
       <h2 id="s2">Download its file</h2>
       <p><a id="dl" class="btn" href="#" aria-disabled="true">Download TamaWatch</a></p>
       <p class="note">Each watch model has its own file; the one for another model won't start. After it downloads,
-      rename it to <code>TamaWatch.prg</code> (so a later update simply replaces it).</p>
+      rename it to <code>TamaWatch.prg</code> (so a later update simply replaces it). To keep two regions on one
+      watch, give the second its own name, such as <code>TamaWatch-johto.prg</code>.</p>
     </div>
   </section>
 
   <section class="card step" aria-labelledby="s3">
-    <span class="num">3</span>
+    <span class="num">4</span>
     <div>
       <h2 id="s3">Copy it onto the watch</h2>
       <div class="tabs" role="tablist">
@@ -111,7 +144,7 @@
   </section>
 
   <section class="card step" aria-labelledby="s4">
-    <span class="num">4</span>
+    <span class="num">5</span>
     <div>
       <h2 id="s4">Open it</h2>
       <p id="where" class="where">Pick your watch above to see where TamaWatch appears on it.</p>
@@ -122,6 +155,31 @@
             The guide in the menu explains everything else.</li>
       </ol>
     </div>
+  </section>
+
+  <section class="card" aria-labelledby="how">
+    <h2 id="how">How it plays</h2>
+    <details open><summary>HP</summary>
+      <p>The bar under your partner's name is its HP. Battles take it, and it keeps what's left: your next battle
+      (wild, gym or link) starts from there. A battle that costs 40% or more of its HP also costs some food, a
+      quarter of what it lost.</p>
+      <p>HP refills by itself, from empty to full in 15 minutes. Each fruit gives some back at once (its favourite
+      more), and so does every training game; a recorded activity gives back half the bar.</p></details>
+    <details><summary>Good care wins fights</summary>
+      <p>When food, hygiene or joy is under half, your partner's attacks miss more often: the lower they are, the
+      more it misses, up to 4 attacks in 10 when all three are empty. Feed it, bathe it and keep training.</p></details>
+    <details><summary>Fruit from training games</summary>
+      <p>The three training games on the football button sometimes turn up a piece of fruit: an apple, a blue berry
+      or an orange. One piece at most per game, and about one game in three.</p></details>
+    <details><summary>Your activities</summary>
+      <p>Every activity you record on the watch (5 minutes or more) fills your partner's joy, trains a stat
+      (running speed, cycling and swimming defence, strength attack) and gives back HP. Care alerts wait while
+      you're recording, so nothing buzzes mid-run.</p></details>
+    <details><summary>Regions, battles and trades</summary>
+      <p>Your watch holds one region. Link battles work with a friend playing any region: a creature your watch has
+      no picture of shows as an orb in its type's colours, and fights with its real types and moves. Trades need the
+      same region on both watches, because a creature can only live in its own region; the watch tells you so if
+      yours differ. Both watches need version 1.1 or newer.</p></details>
   </section>
 
   <section class="card" aria-labelledby="faq">
@@ -137,7 +195,11 @@
       "Nearby" play connects two watches directly but hasn't been tried on real watches yet.</p></details>
     <details><summary>Updating to a new version</summary>
       <p>Download the new file for your watch and replace the old <code>TamaWatch.prg</code> in <code>GARMIN/Apps</code>.
-      Your pet, team and progress are kept.</p></details>
+      Your pet, team and progress are kept. Before version 1.1 TamaWatch was Kanto only: choose Kanto to carry on
+      with that game.</p></details>
+    <details><summary>Switching region</summary>
+      <p>Another region is a separate app with its own new game: your game in the first region stays on the watch,
+      untouched, as long as you keep its file (or put it back later).</p></details>
     <details><summary>What does TamaWatch do with my data?</summary>
       <p>It reads your steps, activities, Body Battery and sleep on the watch to run the game, and sends nothing anywhere.
       The only exception is online battles and trades: their game messages (your pet's name, level and team) pass
@@ -157,6 +219,7 @@
 
 <script>
 const WATCHES = [{"id": "approachs50", "name": "Approach S50", "kind": "new"}, {"id": "approachs7042mm", "name": "Approach S70 42mm", "kind": "new"}, {"id": "approachs7047mm", "name": "Approach S70 47mm", "kind": "new"}, {"id": "approachs7243mm", "name": "Approach S72 43mm", "kind": "new"}, {"id": "approachs7247mm", "name": "Approach S72 47mm", "kind": "new"}, {"id": "legacyherocaptainmarvel", "name": "Captain Marvel", "kind": "app"}, {"id": "d2air", "name": "D2 Air", "kind": "app"}, {"id": "d2airx10", "name": "D2 Air X10", "kind": "widget"}, {"id": "d2mach1", "name": "D2 Mach 1", "kind": "new"}, {"id": "d2mach2", "name": "D2 Mach 2", "kind": "new"}, {"id": "d2mach2pro", "name": "D2 Mach 2 Pro", "kind": "new"}, {"id": "legacysagadarthvader", "name": "Darth Vader", "kind": "app"}, {"id": "descentg2", "name": "Descent G2", "kind": "new"}, {"id": "descentmk2", "name": "Descent Mk2 / Mk2i", "kind": "widget"}, {"id": "descentmk2s", "name": "Descent Mk2 S", "kind": "widget"}, {"id": "descentmk343mm", "name": "Descent Mk3 43mm / Mk3i 43mm", "kind": "new"}, {"id": "descentmk351mm", "name": "Descent Mk3i 51mm", "kind": "new"}, {"id": "enduro3", "name": "Enduro 3", "kind": "new"}, {"id": "enduro4", "name": "Enduro 4", "kind": "new"}, {"id": "epix2", "name": "epix (Gen 2) / quatix 7 Sapphire", "kind": "new"}, {"id": "epix2pro42mm", "name": "epix Pro (Gen 2) 42mm", "kind": "new"}, {"id": "epix2pro47mm", "name": "epix Pro (Gen 2) 47mm / quatix 7 Pro", "kind": "new"}, {"id": "epix2pro51mm", "name": "epix Pro (Gen 2) 51mm / D2 Mach 1 Pro / tactix 7 – AMOLED Edition", "kind": "new"}, {"id": "legacyherofirstavenger", "name": "First Avenger", "kind": "app"}, {"id": "fr165", "name": "Forerunner 165", "kind": "new"}, {"id": "fr165m", "name": "Forerunner 165 Music", "kind": "new"}, {"id": "fr170", "name": "Forerunner 170", "kind": "new"}, {"id": "fr170m", "name": "Forerunner 170 Music", "kind": "new"}, {"id": "fr245m", "name": "Forerunner 245 Music", "kind": "widget"}, {"id": "fr255", "name": "Forerunner 255", "kind": "new"}, {"id": "fr255m", "name": "Forerunner 255 Music", "kind": "new"}, {"id": "fr255s", "name": "Forerunner 255s", "kind": "new"}, {"id": "fr255sm", "name": "Forerunner 255s Music", "kind": "new"}, {"id": "fr265", "name": "Forerunner 265", "kind": "new"}, {"id": "fr265s", "name": "Forerunner 265s", "kind": "new"}, {"id": "fr57042mm", "name": "Forerunner 570 42mm", "kind": "new"}, {"id": "fr57047mm", "name": "Forerunner 570 47mm", "kind": "new"}, {"id": "fr645m", "name": "Forerunner 645 Music", "kind": "app"}, {"id": "fr70", "name": "Forerunner 70", "kind": "new"}, {"id": "fr745", "name": "Forerunner 745", "kind": "widget"}, {"id": "fr945", "name": "Forerunner 945", "kind": "widget"}, {"id": "fr945lte", "name": "Forerunner 945 LTE", "kind": "widget"}, {"id": "fr955", "name": "Forerunner 955 / Solar", "kind": "new"}, {"id": "fr965", "name": "Forerunner 965", "kind": "new"}, {"id": "fr970", "name": "Forerunner 970", "kind": "new"}, {"id": "fenix5plus", "name": "fēnix 5 Plus", "kind": "widget"}, {"id": "fenix5splus", "name": "fēnix 5S Plus", "kind": "widget"}, {"id": "fenix5xplus", "name": "fēnix 5X Plus", "kind": "widget"}, {"id": "fenix6pro", "name": "fēnix 6 Pro / 6 Sapphire / 6 Pro Solar / 6 Pro Dual Power / quatix 6", "kind": "widget"}, {"id": "fenix6spro", "name": "fēnix 6S Pro / 6S Sapphire / 6S Pro Solar / 6S Pro Dual Power", "kind": "widget"}, {"id": "fenix6xpro", "name": "fēnix 6X Pro / 6X Sapphire / 6X Pro Solar / tactix Delta Sapphire / Delta Solar / Delta Solar - Ballistics Edition / quatix 6X / 6X Solar / 6X Dual Power", "kind": "widget"}, {"id": "fenix7", "name": "fēnix 7 / quatix 7", "kind": "new"}, {"id": "fenix7pro", "name": "fēnix 7 Pro", "kind": "new"}, {"id": "fenix7pronowifi", "name": "fēnix 7 Pro - Solar Edition (no Wi-Fi)", "kind": "new"}, {"id": "fenix7s", "name": "fēnix 7S", "kind": "new"}, {"id": "fenix7spro", "name": "fēnix 7S Pro", "kind": "new"}, {"id": "fenix7x", "name": "fēnix 7X / tactix 7 / quatix 7X Solar / Enduro 2", "kind": "new"}, {"id": "fenix7xpro", "name": "fēnix 7X Pro", "kind": "new"}, {"id": "fenix7xpronowifi", "name": "fēnix 7X Pro - Solar Edition (no Wi-Fi)", "kind": "new"}, {"id": "fenix843mm", "name": "fēnix 8 43mm", "kind": "new"}, {"id": "fenix847mm", "name": "fēnix 8 47mm / 51mm / tactix 8 47mm / 51mm / quatix 8 47mm / 51mm", "kind": "new"}, {"id": "fenix8pro47mm", "name": "fēnix 8 Pro 47mm / 51mm / MicroLED / quatix 8 Pro 47mm / 51mm", "kind": "new"}, {"id": "fenix8solar47mm", "name": "fēnix 8 Solar 47mm", "kind": "new"}, {"id": "fenix8solar51mm", "name": "fēnix 8 Solar 51mm / tactix 8 Solar 51mm", "kind": "new"}, {"id": "fenix943mm", "name": "fēnix 9 43mm", "kind": "new"}, {"id": "fenix947mm", "name": "fēnix 9 47mm / 51mm", "kind": "new"}, {"id": "fenix9pro43mm", "name": "fēnix 9 Pro 43mm", "kind": "new"}, {"id": "fenix9pro47mm", "name": "fēnix 9 Pro 47mm", "kind": "new"}, {"id": "fenix9pro51mm", "name": "fēnix 9 Pro 51mm", "kind": "new"}, {"id": "fenix9prosolar47mm", "name": "fēnix 9 Pro Solar 47mm", "kind": "new"}, {"id": "fenix9prosolar51mm", "name": "fēnix 9 Pro Solar 51mm", "kind": "new"}, {"id": "fenixe", "name": "fēnix E", "kind": "new"}, {"id": "instinct3amoled45mm", "name": "Instinct 3 AMOLED 45mm", "kind": "new"}, {"id": "instinct3amoled50mm", "name": "Instinct 3 AMOLED 50mm", "kind": "new"}, {"id": "instinctcrossoveramoled", "name": "Instinct Crossover AMOLED", "kind": "new"}, {"id": "marq2", "name": "MARQ (Gen 2) Athlete / Adventurer / Captain / Golfer / Carbon Edition / Commander - Carbon Edition", "kind": "new"}, {"id": "marq2aviator", "name": "MARQ (Gen 2) Aviator", "kind": "new"}, {"id": "marq3", "name": "MARQ (Gen 3) Athlete / Adventurer / Aviator / Commander / Golfer / Diver", "kind": "new"}, {"id": "marqadventurer", "name": "MARQ Adventurer", "kind": "widget"}, {"id": "marqathlete", "name": "MARQ Athlete", "kind": "widget"}, {"id": "marqaviator", "name": "MARQ Aviator", "kind": "widget"}, {"id": "marqcaptain", "name": "MARQ Captain / MARQ Captain: American Magic Edition", "kind": "widget"}, {"id": "marqcommander", "name": "MARQ Commander", "kind": "widget"}, {"id": "marqdriver", "name": "MARQ Driver", "kind": "widget"}, {"id": "marqexpedition", "name": "MARQ Expedition", "kind": "widget"}, {"id": "marqgolfer", "name": "MARQ Golfer", "kind": "widget"}, {"id": "legacysagarey", "name": "Rey", "kind": "app"}, {"id": "venu", "name": "Venu", "kind": "app"}, {"id": "venu2", "name": "Venu 2", "kind": "widget"}, {"id": "venu2plus", "name": "Venu 2 Plus", "kind": "widget"}, {"id": "venu2s", "name": "Venu 2S", "kind": "widget"}, {"id": "venu3", "name": "Venu 3", "kind": "new"}, {"id": "venu3s", "name": "Venu 3S", "kind": "new"}, {"id": "venu441mm", "name": "Venu 4 41mm", "kind": "new"}, {"id": "venu445mm", "name": "Venu 4 45mm / D2 Air X15", "kind": "new"}, {"id": "venud", "name": "Venu Mercedes-Benz Collection", "kind": "app"}, {"id": "venusq2", "name": "Venu Sq 2", "kind": "widget"}, {"id": "venusq2m", "name": "Venu Sq 2 Music", "kind": "widget"}, {"id": "venusqm", "name": "Venu Sq. Music Edition", "kind": "app"}, {"id": "venux1", "name": "Venu X1", "kind": "new"}, {"id": "vivoactive3m", "name": "vívoactive 3 Music", "kind": "app"}, {"id": "vivoactive4", "name": "vívoactive 4", "kind": "app"}, {"id": "vivoactive4s", "name": "vívoactive 4S", "kind": "app"}, {"id": "vivoactive5", "name": "vívoactive 5", "kind": "new"}, {"id": "vivoactive6", "name": "vívoactive 6", "kind": "new"}];
+const REGIONS = [{"id": "kanto", "name": "Kanto", "first": 1, "last": 151, "count": 151}, {"id": "johto", "name": "Johto", "first": 152, "last": 251, "count": 100}, {"id": "hoenn", "name": "Hoenn", "first": 252, "last": 386, "count": 135}];
 const REPO = "AlbertoElDiablo/TamaWatch";
 const WHERE = {
   widget: "On this watch TamaWatch is a <b>widget</b>: scroll the widget list from the watch face (UP / DOWN) and select it.",
@@ -164,6 +227,21 @@ const WHERE = {
   app: "On this watch TamaWatch opens from the <b>apps list</b> (START on the watch face, or the Activities &amp; Apps menu)."
 };
 const sel = document.getElementById("watch"), dl = document.getElementById("dl"), where = document.getElementById("where");
+let region = REGIONS[0];
+const rbox = document.getElementById("regions");
+for (const r of REGIONS) {
+  const b = document.createElement("button");
+  b.type = "button"; b.dataset.region = r.id;
+  b.innerHTML = "<b>" + r.name + "</b><span>" + r.count + " creatures · #" + r.first + "–" + r.last + "</span>";
+  b.addEventListener("click", () => pickRegion(r));
+  rbox.appendChild(b);
+}
+function pickRegion(r) {
+  region = r;
+  for (const b of rbox.querySelectorAll("button")) b.setAttribute("aria-pressed", b.dataset.region === r.id ? "true" : "false");
+  try { localStorage.setItem("tamawatch-region", r.id); } catch (e) {}
+  choose(WATCHES.find(w => w.id === sel.value));
+}
 
 // a dropdown, the watches grouped by family
 const FAMILIES = ["Approach", "D2", "Descent", "Enduro", "epix", "fenix", "Forerunner", "Instinct", "MARQ", "Venu", "vivoactive"];
@@ -189,9 +267,9 @@ function choose(w) {
     return;
   }
   sel.value = w.id;
-  dl.href = "https://github.com/" + REPO + "/releases/latest/download/TamaWatch-" + w.id + ".prg";
+  dl.href = "https://github.com/" + REPO + "/releases/latest/download/TamaWatch-" + region.id + "-" + w.id + ".prg";
   dl.setAttribute("aria-disabled", "false");
-  dl.textContent = "Download TamaWatch for " + w.name.split(" / ")[0];
+  dl.textContent = "Download TamaWatch " + region.name + " for " + w.name.split(" / ")[0];
   where.innerHTML = WHERE[w.kind];
   try { localStorage.setItem("tamawatch-watch", w.id); } catch (e) {}
 }
@@ -203,9 +281,11 @@ for (const t of document.querySelectorAll("[role=tab]")) {
   });
 }
 if (/Mac/.test(navigator.platform)) document.querySelector("[data-tab=mac]").click();
-let saved = null;
-try { saved = localStorage.getItem("tamawatch-watch"); } catch (e) {}
-choose(WATCHES.find(w => w.id === saved));
+let saved = null, savedRegion = null;
+try { saved = localStorage.getItem("tamawatch-watch"); savedRegion = localStorage.getItem("tamawatch-region"); } catch (e) {}
+const sw = WATCHES.find(w => w.id === saved);
+if (sw) sel.value = sw.id;
+pickRegion(REGIONS.find(r => r.id === savedRegion) || REGIONS[0]);
 </script>
 </body>
 </html>

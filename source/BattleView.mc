@@ -96,8 +96,27 @@ class BattleView extends WatchUi.View {
             foe = Battle.fromSpecies(foeDex, foeLvl, 20);
             msgs = [Tr.t("A wild ") + foe.name + Tr.t(" appeared!"), Tr.t("Go, ") + you.name + "!"];
         }
-        hpShown = [you.maxHp, foe.maxHp];
-        hpTarget = [you.maxHp, foe.maxHp];
+        hpShown = [you.hp, foe.maxHp];
+        hpTarget = [you.hp, foe.maxHp];
+    }
+
+    // The pet's own combatant (null when it sits this one out) and its HP when the battle began:
+    // what it ends with is written back to it (PetModel.afterBattle).
+    var petC = null;
+    var petStartPct = 100;
+    var hpSaved = false;
+
+    function notePet(c) {
+        petC = c;
+        petStartPct = c.hp * 100 / (c.maxHp > 0 ? c.maxHp : 1);
+    }
+
+    function savePetHp() {
+        if (hpSaved || petC == null || model.isEgg()) { return; }
+        hpSaved = true;
+        var pct = petC.hp * 100 / (petC.maxHp > 0 ? petC.maxHp : 1);
+        if (pct == 0 && petC.hp > 0) { pct = 1; }
+        Hp.afterBattle(model, pct, petStartPct);
     }
 
     function buildSquad(cap) {
@@ -108,6 +127,7 @@ class BattleView extends WatchUi.View {
             if ((squadMask & (1 << (i + 1))) != 0) { squad.add(Battle.fromMember(model.party[i], cap)); }
         }
         if (squad.size() == 0) { squad.add(Battle.fromPet(model, cap)); petIn = true; }
+        if (petIn) { notePet(squad[0]); }
         squadAt = 0;
         you = squad[0];
     }
@@ -148,8 +168,9 @@ class BattleView extends WatchUi.View {
         foeSquad = theirs;
         foeAt = 0;
         foe = foeSquad[0];
-        hpShown = [you.maxHp, foe.maxHp];
-        hpTarget = [you.maxHp, foe.maxHp];
+        notePet(squad[0]);                  // LinkView.mySquad(): your pet first
+        hpShown = [you.hp, foe.hp];
+        hpTarget = [you.hp, foe.hp];
         msgs = [peerName + Tr.t(" wants to battle!"), peerName + Tr.t(" sends out ") + foe.name + "!", Tr.t("Go, ") + you.name + "!"];
         if (isHost && lobby.earlyAct != null) { onLinkMsg("ACT", lobby.earlyAct); lobby.earlyAct = null; }
     }
@@ -215,6 +236,7 @@ class BattleView extends WatchUi.View {
         steps = [];
         stepAt = -1;
         msgs = [peerName + Tr.t(" left the battle.")];
+        savePetHp();
     }
 
     // The host's turn: switches first, then both moves in speed order, then chip damage; the
@@ -377,6 +399,7 @@ class BattleView extends WatchUi.View {
 
     // [meta, sheet or shiny atlas, y offset in it]
     function loadArt(c) {
+        if (c.foreign) { return null; }           // another region's creature: drawStandIn
         var m = WatchUi.loadResource(SpriteIndex.data(c.dex));
         var a = SpriteIndex.art(m, c.dex, c.shiny);
         return [m, a[0], a[1]];
@@ -477,11 +500,13 @@ class BattleView extends WatchUi.View {
             won = true;
             if (trainer >= 0) { finishTrainerWin(); } else { msgs.add(Tr.t("You won!")); }
             awardExp(true);
+            savePetHp();
         } else if (you.fainted() && !youLeft) {
             over = true;
             won = false;
             msgs.add(Tr.t("You lost..."));
             awardExp(false);
+            savePetHp();
         } else if (lobby != null) {
             pendingFoeIdx = foeLeft ? nextAliveFoe() : -1;   // each side's next one comes in
             pendingYouIdx = youLeft ? nextAlive() : -1;
@@ -873,8 +898,32 @@ class BattleView extends WatchUi.View {
         drawSprite(dc, who, sx + ox, footY + oy, now < hitUntil[who] ? 4 : 0);
     }
 
+    // A friend's creature from another region, which this build has no picture of: an orb in its
+    // type's colour (the second type as a band) with its national number, bobbing gently.
+    function drawStandIn(dc, who, cx, footY) {
+        var c = who == 0 ? you : foe;
+        var r = 22;
+        var cy = footY - r - 2 - ((frame / 4) % 2);
+        dc.setColor(0x555555, Graphics.COLOR_TRANSPARENT);
+        dc.fillEllipse(cx, footY, r, 3);
+        dc.setColor(Moves.typeColor(c.t1), Graphics.COLOR_TRANSPARENT);
+        dc.fillCircle(cx, cy, r);
+        if (c.t2 >= 0) {
+            dc.setColor(Moves.typeColor(c.t2), Graphics.COLOR_TRANSPARENT);
+            dc.fillRectangle(cx - r + 3, cy + 4, 2 * r - 6, 7);
+        }
+        dc.setColor(0xFFFFFF, Graphics.COLOR_TRANSPARENT);
+        dc.fillCircle(cx - 8, cy - 9, 4);
+        dc.setColor(0x000000, Graphics.COLOR_TRANSPARENT);
+        dc.setPenWidth(2);
+        dc.drawCircle(cx, cy, r);
+        dc.setPenWidth(1);
+        dc.drawText(cx, cy - 12, Graphics.FONT_XTINY, "?", Graphics.TEXT_JUSTIFY_CENTER);
+    }
+
     // A frame of the creature's sheet (idle, or hurt while hit) standing on footY.
     function drawSprite(dc, who, cx, footY, animIdx) {
+        if (art[who] == null) { drawStandIn(dc, who, cx, footY); return; }
         var m = art[who][0];
         var a = m[SpriteIndex.ANIMS[animIdx]];
         var n = a["d"].size();
@@ -956,6 +1005,7 @@ class BattleDelegate extends WatchUi.BehaviorDelegate {
     }
 
     function leave() {
+        v.savePetHp();                       // running away keeps the HP it has now
         if (v.lobby != null) { v.lobby.battleDone(v.won); }
         WatchUi.popView(WatchUi.SLIDE_DOWN);
     }

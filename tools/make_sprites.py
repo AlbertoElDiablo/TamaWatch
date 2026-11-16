@@ -1,8 +1,8 @@
-"""Convert SpriteCollab Kanto sprites into TamaWatch resources.
+"""Convert SpriteCollab sprites of the build's region (tools/region.py, TW_REGION) into TamaWatch resources.
 
 usage: python3 -P make_sprites.py <SpriteCollab-master> <TamaWatch>
 
-For each Pokemon #1-151 and each anim (Idle, Sleep, Eat|Charge, Hop, Hurt):
+For each species of the region (numbered 1..COUNT in the app) and each anim (Idle, Sleep, Eat|Charge, Hop, Hurt):
   - take the front-facing row (row 0 = facing down/camera)
   - crop every frame to the union of visible pixels (keeps motion intact)
   - scale 2x nearest-neighbour (1x for big Pokemon)
@@ -11,10 +11,14 @@ Also generates source/SpriteIndex.mc (resource lookup) and CREDITS.md.
 """
 import json, os, re, shutil, sys, xml.etree.ElementTree as ET
 from PIL import Image
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+import region as R
 
 SRC, APP = sys.argv[1], sys.argv[2]
-ANIMS = [("idle", ["Idle"]), ("sleep", ["Sleep"]), ("eat", ["Eat", "Charge"]),
-         ("hop", ["Hop"]), ("hurt", ["Hurt"])]
+# each anim, then what stands in when a species has no such sheet (later regions miss a few)
+ANIMS = [("idle", ["Idle", "Walk"]), ("sleep", ["Sleep", "Rest", "Laying", "Idle"]),
+         ("eat", ["Eat", "Charge", "Attack", "Idle"]), ("hop", ["Hop", "Walk", "Idle"]),
+         ("hurt", ["Hurt", "Idle"])]
 MAX_IDLE = 100        # 2x only if the idle pose stays within this many px
 STRIP_BUDGET = 30000  # max pixels per strip (runtime memory), frames get thinned above it
 
@@ -79,7 +83,8 @@ drawables, jsons, index, credits = [], [], [], {}
 shiny_sheets = []
 missing_shiny = []
 total_bytes, biggest = 0, (0, "")
-for n in range(1, 152):
+for k in range(1, R.COUNT + 1):
+    n = R.nat(k)                 # national number: SpriteCollab's folder
     table = anim_table(n)
     nm, a = resolve(table, ["Idle"])
     fw, fh, fr, _ = frames_of(n, nm, a)
@@ -138,8 +143,8 @@ for n in range(1, 152):
                 ssheet.paste(sc[i], ((i % cols) * fw_, yy + (i // cols) * fh_))
         yy += -(-len(c) // cols) * fh_
     sheet = to_device_colours(sheet)
-    shiny_sheets.append((n, to_device_colours(ssheet), meta))
-    rid = "p%03d" % n
+    shiny_sheets.append((k, to_device_colours(ssheet), meta))
+    rid = "p%03d" % k
     path = os.path.join(draw_dir, rid + ".png")
     sheet.save(path, optimize=True)
     total_bytes += os.path.getsize(path)
@@ -148,31 +153,59 @@ for n in range(1, 152):
     pal = "".join("<color>%02X%02X%02X</color>" % c for c in sorted({c[:3] for c in sheet.getdata() if c[3]}))
     drawables.append('    <bitmap id="%s" filename="sprites/%s.png"><palette disableTransparency="false">%s</palette></bitmap>' % (rid, rid, pal))
     index.append(rid)
-    jid = "d%03d" % n
+    jid = "d%03d" % k
     jsons.append('    <jsonData id="%s" filename="%s.json"/>' % (jid, jid))
     cred = open(os.path.join(SRC, "sprite", "%04d" % n, "credits.txt")).read().split("\n")
-    credits[n] = sorted({who.get(l.split("\t")[1], l.split("\t")[1]) for l in cred if l.count("\t") >= 2})
+    credits[k] = sorted({who.get(l.split("\t")[1], l.split("\t")[1]) for l in cred if l.count("\t") >= 2})
 
 # Shiny sheets: same layout as the normal ones, packed several to an "atlas" bitmap
 # (stacked vertically) because Connect IQ allows at most 254 drawables. "sh" = [atlas, y].
 # Group sheets whose colours overlap so each atlas stays within 15 colours (the compiler then
 # stores it at 4 bits per pixel), biggest first, up to ATLAS_PX pixels per atlas.
-ATLAS_PX = 300000
-groups = []          # each: [px, colours, items]
-for item in sorted(shiny_sheets, key=lambda t: -t[1].width * t[1].height):
-    px = item[1].width * item[1].height
-    cols = {c[:3] for c in item[1].getdata() if c[3]}
-    best = None
-    for g in groups:
-        u = g[1] | cols
-        if len(u) <= 15 and g[0] + px <= ATLAS_PX and (best is None or len(u) < len(best[1] | cols)):
-            best = g
-    if best is None:
-        best = [0, set(), []]
-        groups.append(best)
-    best[0] += px
-    best[1] |= cols
-    best[2].append(item)
+# Connect IQ allows 254 bitmaps: the region's sheets and the app's other pictures come first, the
+# atlases get what is left. Atlases stay as Kanto's (300,000 px, 15 colours: 4 bits a pixel, so
+# a shiny costs no more memory than in Kanto); when a region needs more atlases than there is
+# room for, the emptiest ones are left out and their species show their normal colours when shiny.
+others = 0
+for x in os.listdir(os.path.join(APP, "resources", "drawables")):
+    if x.endswith(".xml") and x not in ("sprites.xml", "shiny.xml"):
+        others += open(os.path.join(APP, "resources", "drawables", x)).read().count("<bitmap")
+room = 254 - others - R.COUNT
+def pack(ATLAS_PX):
+    # an atlas is stacked: as wide as its widest sheet, as tall as all of them, and that whole
+    # rectangle is what the watch holds in memory
+    groups = []          # each: [area, colours, items, width, height]
+    for item in sorted(shiny_sheets, key=lambda t: (-t[1].width, -t[1].height)):
+        w, h = item[1].size
+        cols = {c[:3] for c in item[1].getdata() if c[3]}
+        best = None
+        for g in groups:
+            u = g[1] | cols
+            area = max(g[3], w) * (g[4] + h)
+            if len(u) <= 15 and area <= ATLAS_PX and (best is None or len(u) < len(best[1] | cols)):
+                best = g
+        if best is None:
+            best = [0, set(), [], 0, 0]
+            groups.append(best)
+        best[3] = max(best[3], w)
+        best[4] += h
+        best[0] = best[3] * best[4]
+        best[1] |= cols
+        best[2].append(item)
+    return groups
+
+# the smallest atlas budget that fits them all; failing that, 380,000 px and the emptiest left out
+for ATLAS_PX in (300000, 340000, 380000):
+    groups = pack(ATLAS_PX)
+    if len(groups) <= room:
+        break
+no_shiny = []
+if len(groups) > room:
+    groups.sort(key=lambda g: g[0])
+    for g in groups[:len(groups) - room]:
+        no_shiny += [k for k, _, _ in g[2]]
+    groups = groups[len(groups) - room:]
+print("shiny atlases: %d (room %d, %d px); without shiny art: %d %s" % (len(groups), room, ATLAS_PX, len(no_shiny), sorted(no_shiny)))
 groups = [g[2] for g in groups]
 budget = ATLAS_PX
 shiny_dir = os.path.join(APP, "resources", "drawables", "shiny")
@@ -215,12 +248,12 @@ with open(xml_path, "w") as f:
     f.write("<resources>\n" + "\n".join(jsons + others) + "\n</resources>\n")
 
 # Resource lookup, built inside functions so the big arrays only exist while called.
-names = [tracker["%04d" % n]["name"] for n in range(1, 152)]
+names = [tracker["%04d" % R.nat(k)]["name"] for k in range(1, R.COUNT + 1)]
 with open(os.path.join(APP, "source", "SpriteIndex.mc"), "w") as f:
     f.write("// GENERATED by make_sprites.py - do not edit by hand.\n")
     f.write("import Toybox.WatchUi;\n\nmodule SpriteIndex {\n\n")
     f.write("    const ANIMS = [\"idle\", \"sleep\", \"eat\", \"hop\", \"hurt\"];\n\n")
-    f.write("    // Sprite sheet for dex number n (1-151); frame layout in data(n).\n")
+    f.write("    // Sprite sheet for species n (1-%d of %s); frame layout in data(n).\n" % (R.COUNT, R.NAME.title()))
     f.write("    function sheet(n) {\n        var ids = [\n")
     for i in range(0, len(index), 8):
         f.write("            " + ", ".join("Rez.Drawables." + r for r in index[i:i + 8]) + ",\n")
@@ -237,11 +270,11 @@ with open(os.path.join(APP, "source", "SpriteIndex.mc"), "w") as f:
     f.write("        }\n")
     f.write("        return [WatchUi.loadResource(sheet(n)), 0];\n    }\n\n")
     f.write("    function data(n) {\n        var ids = [\n")
-    for i in range(1, 152, 8):
-        f.write("            " + ", ".join("Rez.JsonData.d%03d" % k for k in range(i, min(i + 8, 152))) + ",\n")
+    for i in range(1, R.COUNT + 1, 8):
+        f.write("            " + ", ".join("Rez.JsonData.d%03d" % k for k in range(i, min(i + 8, R.COUNT + 1))) + ",\n")
     f.write("        ];\n        return ids[n - 1];\n    }\n\n")
     f.write("    function name(n) {\n        var all = [\n")
-    for i in range(0, 151, 6):
+    for i in range(0, R.COUNT, 6):
         f.write("            " + ", ".join(json.dumps(x) for x in names[i:i + 6]) + ",\n")
     f.write("        ];\n        return all[n - 1];\n    }\n}\n")
 
@@ -255,8 +288,8 @@ with open(cred_path, "w") as f:
     f.write(head + "## Sprites\n\nPokemon sprites (normal and shiny) from the PMD SpriteCollab project "
             "(https://sprites.pmdcollab.org), licensed CC BY-NC 4.0. "
             "Front-facing frames were cropped, scaled and re-packed for the watch.\n\n")
-    for n in range(1, 152):
-        f.write("- #%03d %s: %s\n" % (n, names[n - 1], ", ".join(credits[n])))
+    for k in range(1, R.COUNT + 1):
+        f.write("- #%03d %s: %s\n" % (R.nat(k), names[k - 1], ", ".join(credits[k])))
 
 print("shiny atlases:", len(groups), "budget px", budget, "| anims without a shiny file:", len(missing_shiny), missing_shiny[:8])
 print("strips:", len(index), "png bytes: %.1f KB" % (total_bytes / 1024),
