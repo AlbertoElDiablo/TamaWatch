@@ -35,6 +35,14 @@ var workoutsRead = 0;            // when PetModel.claimWorkouts last read the hi
 // Intensity minutes a recorded activity already paid for (as its own EXP): taken off the next
 // intensity minutes read, so the same effort isn't paid twice. Saved in "bag".
 var amCredit = 0;
+var giftDay = 0;                 // the day the daily fruit was last given (saved in "bag")
+
+// The watch says you are asleep right now: its sleep mode (your sleep window, or a sleep it
+// detected). Used besides the profile's bedtime and wake time.
+function sleepModeNow() {
+    var i = ActivityMonitor.getInfo();
+    return i != null && (i has :isSleepMode) && i.isSleepMode == true;
+}
 
 // EXP a minute of a recorded activity, by sport: about 10 for each intensity minute it is worth,
 // weighted so the same effort pays the same. Strength raises the heart rate less (fewer intensity
@@ -494,6 +502,17 @@ class PetModel {
         }
         if (bbVals.size() > 0) { bbNow = bbVals[0]; energy = bbNow; }   // your Body Battery right now
         claimSteps();
+        // the day's gift: 2 pieces of fruit the first time you look in a day (missed days don't add up)
+        var d = today();
+        if (!isEgg() && d > 0 && d != $.giftDay) {
+            $.giftDay = d;
+            for (var k = 0; k < 2; k++) {
+                var item = rnd(3);
+                if (bag[item] < 99) { bag[item] += 1; }
+            }
+            say(Tr.t("Daily gift: 2 fruit!"), 5000);
+            save();
+        }
         if (done > 0) { save(); }
     }
 
@@ -512,9 +531,7 @@ class PetModel {
             energy = energy + 6 > cap ? cap : energy + 6;   // recharges (without Body Battery data)
             if (bbNow >= 0) { energy = bbNow; }
             if (weight > 0 && ageMinutes % 3 == 0) { weight--; }
-            if (ageMinutes % (4 * DRAIN_EVERY) == 0) {          // half TamaPoke's pace
-                food = dropTo(food, 1, 30);
-            }
+            // asleep with you, it doesn't get hungry (TamaPoke's slow night drain is gone)
             if (ageMinutes % (6 * DRAIN_EVERY) == 0) { hygiene = dropTo(hygiene, 1, 45); }
             defTick(true);
             checkMedals();
@@ -559,7 +576,8 @@ class PetModel {
     // Night is your own sleep window (bedtime to wake time in the watch's user profile). With the
     // app closed then it goes to bed with you, and it wakes when you do or when you open the app.
     // (There is no sleep button any more: an old save's put-to-bed counts as asleep with you.)
-    function isNightHour() { return userAsleepAt(lastSeen); }
+    // Also the watch's own sleep mode for the minute being lived now (not a replayed one).
+    function isNightHour() { return userAsleepAt(lastSeen) || (!catchingUp && $.sleepModeNow()); }
 
     function applyAutoSleep() {
         if (isEgg() || ceremony != CER_NONE) { return; }
@@ -1224,6 +1242,7 @@ class PetModel {
         bag = [b[0], b[1], b[2], b[3]];
         amFruit = b[4];
         $.amCredit = b.size() > 5 ? b[5] : 0;
+        $.giftDay = b.size() > 6 ? b[6] : 0;
     }
 
     function loadTrainer() {
@@ -1562,7 +1581,7 @@ class PetModel {
             }
             Storage.setValue("gthumb", runs);
         }
-        Storage.setValue("bag", [bag[0], bag[1], bag[2], bag[3], amFruit, $.amCredit]);
+        Storage.setValue("bag", [bag[0], bag[1], bag[2], bag[3], amFruit, $.amCredit, $.giftDay]);
         Storage.setValue("fit", [actSeen, xpDay, xpToday, bonusLv, eggSteps, eggNeed, stepRead, stepReadDay,
                                  weekPaid, restless, exp, wildDay, wildWins]);
         // a small summary for the background check and the widget glance
@@ -1570,7 +1589,8 @@ class PetModel {
                                  "energy" => energy, "bb" => bbNow >= 0, "poops" => poops, "lv" => isEgg() ? 0 : level(),
                                  "alerts" => alertsOn(), "steps" => eggSteps, "need" => eggNeed,
                                  "starter" => starterPick, "restless" => restless,
-                                 "egg" => isEgg(), "asleep" => sleeping, "last" => lastSeen});
+                                 "egg" => isEgg(), "asleep" => sleeping, "last" => lastSeen,
+                                 "sl" => userSleep, "wk" => userWake});
     }
 
     function loadFit() {

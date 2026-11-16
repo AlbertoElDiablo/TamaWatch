@@ -21,7 +21,9 @@ watch models.
   on the bike (about 1,200 EXP). It also fills joy, trains a stat (running speed, cycling and
   swimming defence, strength attack) and gives fruit. Intensity minutes outside recorded activities
   give 10 EXP each.
-- **It lives your day.** Its energy is your Body Battery and it sleeps when you do. Feed it, bathe
+- **It lives your day.** Its energy is your Body Battery and it sleeps when you do (your sleep window,
+  or the watch's sleep mode): asleep it doesn't get hungry, and no alerts are sent while you sleep
+  or have Do Not Disturb on. Opening the app the first time each day gives 2 pieces of fruit. Feed it, bathe
   it, clean up after it.
 - **Eggs from walking.** Every 15,000 steps earn an egg (at most 2 a week); walk more to hatch it.
   Each step counts once: while an egg waits, steps hatch it, and only later steps count toward the

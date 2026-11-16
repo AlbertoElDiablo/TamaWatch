@@ -39,13 +39,48 @@ class PetService extends System.ServiceDelegate {
         return i.timerState != Activity.TIMER_STATE_OFF;
     }
 
+    // You are asleep (your profile's sleep window, or the watch's sleep mode) or have Do Not Disturb
+    // on: no alerts at all, as while recording an activity.
+    function quiet(d) {
+        var i = ActivityMonitor.getInfo();
+        if (i != null && (i has :isSleepMode) && i.isSleepMode == true) { return true; }
+        var ds = System.getDeviceSettings();
+        if ((ds has :doNotDisturb) && ds.doNotDisturb == true) { return true; }
+        if (d != null && d["sl"] != null && d["wk"] != null) {
+            return inWindow(Time.now().value(), d["sl"], d["wk"]);
+        }
+        return false;
+    }
+
+    function inWindow(t, sl, wk) {
+        if (sl == wk) { return false; }
+        var s = ((t + System.getClockTime().timeZoneOffset) % 86400 + 86400) % 86400;
+        if (sl < wk) { return s >= sl && s < wk; }
+        return s >= sl || s < wk;
+    }
+
+    // Minutes since the summary was saved that you were awake (the creature doesn't get hungry
+    // while you sleep), in half-hour steps, at most two weeks of them.
+    function awakeMins(d) {
+        var t0 = d["last"];
+        var now = Time.now().value();
+        if (d["sl"] == null || d["wk"] == null) { return (now - t0) / 60; }
+        var n = 0;
+        for (var t = t0; t < now && n < 672 * 30; t += 1800) {
+            var step = now - t < 1800 ? (now - t) / 60 : 30;
+            if (!inWindow(t, d["sl"], d["wk"])) { n += step; }
+        }
+        return n;
+    }
+
     function onTemporalEvent() {
         if (recording()) { Background.exit(null); return; }
         var d = Storage.getValue("pet") as Dictionary?;
+        if (quiet(d)) { Background.exit(null); return; }
         if (eggReady(d) || eggHatching(d)) { Background.exit(null); return; }
         if (d != null && !d["egg"] && !d["asleep"] && d["alerts"] != false) {
             var mins = (Time.now().value() - d["last"]) / 60;
-            var food = d["food"] - mins / 2;
+            var food = d["food"] - awakeMins(d) / 2;
             var joy = d["joy"] - mins / 101;
             var hygiene = d["hygiene"] - mins / 4;
             if (food < 20) {

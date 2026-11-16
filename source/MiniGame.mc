@@ -103,6 +103,13 @@ class MiniGameView extends WatchUi.View {
     }
     var found = -1;             // the fruit found during the game (-1: none)
 
+    // the stat this game trains is already as high as its IV allows
+    function statFull() {
+        if (mode == BAG) { return model.trAtk >= model.trMaxFor(model.ivAtk); }
+        if (mode == DODGE) { return model.trSpe >= model.trMaxFor(model.ivSpe); }
+        return model.trDef >= model.trMaxFor(model.ivDef);
+    }
+
     // ---------- bag: the period speeds up from 1.5 s to 1.0 s ----------
 
     function period() { return 1500 - 500 * elapsed() / LENGTH_MS[BAG]; }
@@ -258,7 +265,11 @@ class MiniGameView extends WatchUi.View {
     function drawResult(dc, cx) {
         var stat = [Tr.t("STRENGTH"), Tr.t("SPEED"), Tr.t("DEFENSE")];
         dc.drawText(cx, 80, Graphics.FONT_MEDIUM, score + Tr.t(" points"), Graphics.TEXT_JUSTIFY_CENTER);
-        dc.drawText(cx, 120, Graphics.FONT_SMALL, gain > 0 ? stat[mode] + " +" + gain : Tr.t("No training gained"), Graphics.TEXT_JUSTIFY_CENTER);
+        // what it trained, or why nothing: that stat is already full, or too few points;
+        // a size smaller (and trimmed) when the language needs more room
+        var line = gain > 0 ? stat[mode] + " +" + gain : (statFull() ? stat[mode] + ": " + Tr.t("Fully trained") : Tr.t("No training gained"));
+        var lf = Fit.font(dc, line, 200, [Graphics.FONT_SMALL, Graphics.FONT_TINY, Graphics.FONT_XTINY]);
+        dc.drawText(cx, 120, lf, Fit.trim(dc, line, 210, lf), Graphics.TEXT_JUSTIFY_CENTER);
         if (found >= 0) {
             var fruit = [Tr.t("Found an apple!"), Tr.t("Found a blue berry!"), Tr.t("Found an orange!")];
             dc.setColor(0x00AA00, Graphics.COLOR_TRANSPARENT);
