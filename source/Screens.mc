@@ -132,7 +132,7 @@ class PartyView extends WatchUi.View {
         var cx = dc.getWidth() / 2;
         var p = page();
         var inBox = sel >= 6;
-        drawDisc(dc, inBox ? Tr.t("BOX ") + model.box.size() + "/" + model.BOX_MAX : Tr.t("PARTY ") + model.party.size() + "/6");
+        drawDisc(dc, inBox ? Tr.t("POKÉBOX ") + model.box.size() + "/" + model.BOX_MAX : Tr.t("PARTY ") + model.party.size() + "/6");
         var first = inBox ? 6 + (p - 2) * 4 : p * 3;
         var count = inBox ? 4 : 3;
         for (var k = 0; k < count; k++) {
@@ -183,7 +183,7 @@ class PartyDelegate2 extends WatchUi.BehaviorDelegate {
         if (m == null) { return true; }
         var inParty = v.sel < 6;
         var rows = [[Tr.t("INFO"), :info, 0, -1]];
-        if (inParty) { rows.add([Tr.t("TO BOX"), :toBox, 0, -1]); }
+        if (inParty) { rows.add([Tr.t("TO POKÉBOX"), :toBox, 0, -1]); }
         else { rows.add([Tr.t("TO PARTY"), :toParty, v.model.party.size() < 6 ? 0 : 2, -1]); }
         rows.add([Tr.t("RELEASE"), :release, 1, -1]);
         rows.add([Tr.t("CLOSE"), :close, 2, -1]);
@@ -455,12 +455,12 @@ function guideTopics() {
     ["TRAINING", "Each workout you record (5 min or more) fills joy and trains a stat: running SPEED, cycling and swimming DEFENSE, strength and gym ATTACK; walks, hikes and the rest train a random one. Joy slowly drops over a week, so keep up your trainings per week. The football has three mini-games."],
     ["EXP & LEVELS", "Every 50 steps give 1 EXP. Each activity you record gives EXP by its length and sport, per minute: running or swimming 20, strength or gym 27, cycling 15, hiking 12, walking 8, anything else 15 (so 45 minutes of weights pay like an hour's run). Intensity minutes outside your recorded activities give 10 EXP each. Battles give EXP too: wild fights a few times a day, gyms and link battles more. Your partner gets all of it and the rest of the team 25%. New levels teach moves and let it evolve."],
     ["FOOD & FRUIT", "Fruit is earned: an apple for every 3,000 steps (they add up over time, so 2,000 now and 1,000 later earn it), for every 20 active minutes and at each third of your step goal; a berry or an orange for each workout and for reaching your step goal; candy for your weekly goal and each gym win. Every species has a favourite fruit."],
-    ["EGGS", "Every 15,000 steps earns an egg, at most 2 in any 7 days. Steps carry over until you reach 15,000, but while you already have 2 eggs from the last 7 days they don't count. Open the app to collect it, then walk 1,000 to 3,000 steps to hatch it. It joins your team, or the pet box if the team is full."],
+    ["EGGS", "Every 15,000 steps earns an egg, at most 2 in any 7 days. Steps carry over until you reach 15,000, but while you already have 2 eggs from the last 7 days they don't count. Open the app to collect it, then walk 1,000 to 3,000 steps to hatch it. Each step counts once: while an egg waits, your steps hatch it, and only the steps after that count toward the next egg. The steps of your runs and walks count too, even on days you don't open the app. It joins your team, or the Pokébox if the team is full."],
     ["BATTLES & GYMS", "Fight wild creatures from the menu and beat the 8 gyms in order to earn badges. Hard gyms are tougher and stay closed while your Body Battery is 20% or less. Link battles let you fight a friend online through your phone, or nearby watch to watch."],
-    ["TEAM & PET BOX", "Your team holds 6: your partner plus 5. The rest wait in the pet box. There you can make any team member your partner, swap creatures between the team and the box, see their stats or release them."],
+    ["TEAM & POKÉBOX", "Your team holds 6: your partner plus 5. The rest wait in the Pokébox. There you can make any team member your partner, swap creatures between the team and the Pokébox, see their stats or release them. Only your partner gets hungry, tired, bored or dirty: the others' food, joy, energy and hygiene climb back to full within 24 hours, and their HP within 15 minutes. Each one keeps its own when it becomes your partner."],
     ["REGIONS", "This TamaWatch holds the {0} region. Every region is its own version of the app, with its own game: pick another on the TamaWatch website. Link battles work with friends of any region; trades need the same one."],
     ["SETTINGS", "Vibration turns the buzz on or off. Care alerts send reminders when your partner needs you, and news about eggs. Trainings/week is your weekly workout target; it adjusts to what you really do. Language changes the whole app."],
-    ["BUTTONS", "UP and DOWN move, START picks and BACK goes back. Hold UP, or pick the book, for the menu. In the Pokedex and the pet box, UP and DOWN turn pages until START picks on the page."]];
+    ["BUTTONS", "UP and DOWN move, START picks and BACK goes back. Hold UP, or pick the book, for the menu. In the Pokedex and the Pokébox, UP and DOWN turn pages until START picks on the page."]];
 }
 
 function guidePanel() {

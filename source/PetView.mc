@@ -544,7 +544,7 @@ class PetView extends WatchUi.View {
                      Tr.t("Badges ") + model.badgeCount(false) + Tr.t("/8   hard ") + model.badgeCount(true) + "/8",
                      Tr.t("Best active streak ") + model.bestStreak + Tr.t(" wk"),
                      Tr.t("Medals earned ") + model.totalMedals,
-                     Tr.t("Party ") + model.party.size() + Tr.t("/6   box ") + model.box.size()];
+                     Tr.t("Party ") + model.party.size() + Tr.t("/6   Pokébox ") + model.box.size()];
         }
         var y = 74;
         var step = lines.size() > 6 ? 19 : 24;

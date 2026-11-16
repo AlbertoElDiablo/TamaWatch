@@ -24,7 +24,11 @@ watch models.
 - **It lives your day.** Its energy is your Body Battery and it sleeps when you do. Feed it, bathe
   it, clean up after it.
 - **Eggs from walking.** Every 15,000 steps earn an egg (at most 2 a week); walk more to hatch it.
-- **A team and a pet box.** Your partner plus 5 in the team, the rest in the box.
+  Each step counts once: while an egg waits, steps hatch it, and only later steps count toward the
+  next egg. Steps from runs and walks count, even on days you don't open the app.
+- **A team and a Pokébox.** Your partner plus 5 in the team, the rest in the Pokébox. Only your
+  partner gets hungry, tired, bored or dirty: the others' food, joy, energy and hygiene climb back
+  to full within 24 hours (HP within 15 minutes), and each keeps its own when it becomes partner.
 - **One region per watch.** Pick Kanto (151), Johto (100), Hoenn (135), Sinnoh (107), Unova (143),
   Kalos (71) or Alola (84) on the download page. Each region is its own app with its own game, so
   you can switch, or keep two, without losing anything. Kanto is the version TamaWatch always had:

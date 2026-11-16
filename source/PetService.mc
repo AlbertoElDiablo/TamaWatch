@@ -99,6 +99,9 @@ class PetService extends System.ServiceDelegate {
         var today = (now + System.getClockTime().timeZoneOffset) / 86400;
         var walked = today == f[7] ? info.steps - f[6] : info.steps;     // since the game last read them
         if (walked < 0) { walked = 0; }
+        // a waiting egg takes the steps first (each step counts once: hatching or the next egg)
+        if (e != null && e.size() > 0 && e[0].size() > 0) { walked -= e[0][0][2]; }
+        if (walked < 0) { walked = 0; }
         if (bank + walked < 15000) { return false; }
         if (Storage.getValue("eggnote") == total + 1) { return false; }   // this egg was announced
         Storage.setValue("eggnote", total + 1);

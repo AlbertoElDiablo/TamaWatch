@@ -423,10 +423,10 @@ class TeamView extends WatchUi.View {
         dc.setColor(0xFFFFFF, 0xFFFFFF);          // plain white, like the other menu screens
         dc.clear();
         dc.setColor(0x000000, Graphics.COLOR_TRANSPARENT);
-        dc.drawText(cx, 14, UiFont.small(), Tr.t(boxMode ? "PET BOX" : "TEAM"), Graphics.TEXT_JUSTIFY_CENTER);
+        dc.drawText(cx, 14, UiFont.small(), Tr.t(boxMode ? "POKÉBOX" : "TEAM"), Graphics.TEXT_JUSTIFY_CENTER);
         if (t.size() == 0) {
             dc.setColor(0x555555, Graphics.COLOR_TRANSPARENT);
-            dc.drawText(cx, capY(UiFont.small(), 120), UiFont.small(), boxMode ? Tr.t("The box is empty") : Tr.t("No one yet"), Graphics.TEXT_JUSTIFY_CENTER);
+            dc.drawText(cx, capY(UiFont.small(), 120), UiFont.small(), boxMode ? Tr.t("The Pokébox is empty") : Tr.t("No one yet"), Graphics.TEXT_JUSTIFY_CENTER);
             if (boxMode) {
                 dc.drawText(cx, capY(Graphics.FONT_XTINY, 150), Graphics.FONT_XTINY, Tr.t("Send team members here"), Graphics.TEXT_JUSTIFY_CENTER);
                 dc.drawText(cx, capY(Graphics.FONT_XTINY, 170), Graphics.FONT_XTINY, Tr.t("from TEAM"), Graphics.TEXT_JUSTIFY_CENTER);
@@ -523,7 +523,7 @@ class TeamDelegate2 extends WatchUi.BehaviorDelegate {
             return true;
         }
         var rows = [[Tr.t("SUMMARY"), :sum, 0, -1], [Tr.t("MAKE PARTNER"), :partner, 0, -1],
-                    [Tr.t("TO PET BOX"), :toBox, 0, -1], [Tr.t("RELEASE"), :release, 1, -1]];
+                    [Tr.t("TO POKÉBOX"), :toBox, 0, -1], [Tr.t("RELEASE"), :release, 1, -1]];
         var pv = new PanelView(v.model.memberName(t[v.sel]).toUpper(), rows, Tr.t("The partner gets full EXP, the team 25%"));
         pv.tr = true;
         WatchUi.pushView(pv, new PanelDelegate(pv, new TeamMemberAction(v, v.sel - 1)), WatchUi.SLIDE_UP);
@@ -801,12 +801,18 @@ class SwapAction {
 }
 
 // A party member becomes the partner on the home screen, and the partner joins the party in
-// its place. Who it is (species, name, IVs, training, moves, bond and EXP) changes hands; the
-// care stats (food, joy, ...) stay with the home screen.
+// its place. Everything that is the creature changes hands, its care (food, joy, energy,
+// hygiene, HP) too: the one leaving keeps its own and recovers in the team (Care.mc).
 function makePartner(m, idx) {
     if (idx < 0 || idx >= m.party.size() || m.isEgg() || m.ceremony != m.CER_NONE) { return; }
     var p = m.party[idx];
     var mine = m.selfMember();
+    // the old partner takes its care with it (and recovers in the team); the new one brings its own
+    Care.store(mine, m.food, m.joy, m.energy, m.hygiene, Hp.now(m));
+    var cv = Care.now(p);
+    m.food = cv[0]; m.joy = cv[1]; m.hygiene = cv[3];
+    if (m.bbNow < 0) { m.energy = cv[2]; }      // with Body Battery, energy is yours
+    m.hpv = [cv[4], Time.now().value()];
     m.dex = p[0]; m.nick = p[1]; m.shiny = p[2];
     m.ivAtk = p[4]; m.ivDef = p[5]; m.ivSpe = p[6]; m.ivHp = p[7];
     m.trAtk = p[8]; m.trDef = p[9]; m.trSpe = p[10];
@@ -820,7 +826,6 @@ function makePartner(m, idx) {
     m.evoDeclinedLv = 0;
     m.berryKnown = false;
     m.pendingAnim = 3;
-    Hp.set(m, 100);                       // a rested partner steps in
     m.say(m.name() + Tr.t(" is your partner!"), 3000);
     m.save();
 }
@@ -875,7 +880,7 @@ class PetBoxView extends WatchUi.View {
         var e = entries();
         if (at >= e.size()) { at = e.size() > 0 ? e.size() - 1 : 0; }
         dc.setColor(0x000000, Graphics.COLOR_TRANSPARENT);
-        dc.drawText(cx, 26, UiFont.mid(), Tr.t("PET BOX"), Graphics.TEXT_JUSTIFY_CENTER);
+        dc.drawText(cx, 26, UiFont.mid(), Tr.t("POKÉBOX"), Graphics.TEXT_JUSTIFY_CENTER);
         if (e.size() == 0) {
             dc.setColor(0x555555, Graphics.COLOR_TRANSPARENT);
             dc.drawText(cx, capY(UiFont.small(), 130), UiFont.small(), Tr.t("No one yet"), Graphics.TEXT_JUSTIFY_CENTER);
@@ -975,7 +980,7 @@ class PetBoxDelegate extends WatchUi.BehaviorDelegate {
             WatchUi.pushView(pv, new PanelDelegate(pv, new PartnerAction(m)), WatchUi.SLIDE_UP);
         } else if (en[1] == 1) {                            // a team member
             var rows = [[Tr.t("SUMMARY"), :sum, 0, -1], [Tr.t("MAKE PARTNER"), :partner, 0, -1],
-                        [Tr.t("TO PET BOX"), :toBox, 0, -1], [Tr.t("RELEASE"), :release, 1, -1]];
+                        [Tr.t("TO POKÉBOX"), :toBox, 0, -1], [Tr.t("RELEASE"), :release, 1, -1]];
             var pv = new PanelView(name, rows, Tr.t("In your team"));
             pv.tr = true;
             WatchUi.pushView(pv, new PanelDelegate(pv, new TeamMemberAction(v, en[2])), WatchUi.SLIDE_UP);

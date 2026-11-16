@@ -6,7 +6,8 @@ import Toybox.Time;
 // carry over for as long as it takes to reach 15,000; but while 2 eggs were already earned in
 // the last 7 days, steps don't count (nothing piles up past the limit). An egg
 // then hatches by walking its own steps (1,000 common, 2,000 rare, 3,000 legendary) and the
-// newcomer joins the team, or the pet box when the team is full; your partner stays.
+// newcomer joins the team, or the Pokébox when the team is full; your partner stays. Each step
+// counts once: toward hatching the waiting egg, or toward the next egg.
 // Kept apart from PetModel (which is at Connect IQ's member limit), saved under "eggs".
 module Incubator {
     const STEPS_PER_EGG = 15000;
@@ -40,18 +41,22 @@ module Incubator {
         return keep.size();
     }
 
-    // New steps walked (called from PetModel.claimSteps): hatching first, then toward a new egg.
+    // New steps walked (called from PetModel.claimSteps; a run's steps included, and those of days
+    // the app wasn't opened): each step counts once, either toward hatching the waiting egg or,
+    // when there is none (or once it has hatched), toward finding the next. So an egg is never
+    // found and hatched by the same steps: a new egg only hatches with the steps after it.
     function onSteps(m, delta) {
         load();
         if (delta <= 0) { return; }
-        var changed = false;
+        var rest = delta;
         if (queue.size() > 0) {
             var e = queue[0];
-            e[2] -= delta;
-            changed = true;
+            var use = rest < e[2] ? rest : e[2];
+            e[2] -= use;
+            rest -= use;
             if (e[2] <= 0) { hatch(m, e); queue = queue.slice(1, null); }
         }
-        if (recent() < MAX_PER_WEEK) { bank += delta; }       // at the limit, steps don't pile up
+        if (recent() < MAX_PER_WEEK) { bank += rest; }        // at the limit, steps don't pile up
         while (bank >= STEPS_PER_EGG) {
             if (recent() >= MAX_PER_WEEK) { bank = 0; break; }
             bank -= STEPS_PER_EGG;
@@ -87,7 +92,7 @@ module Incubator {
             m.say(Tr.f("{0} hatched and joined your team!", [name]), 4000);
         } else {
             m.box.add(member);
-            m.say(Tr.f("{0} hatched and went to the pet box!", [name]), 4000);
+            m.say(Tr.f("{0} hatched and went to the Pokébox!", [name]), 4000);
         }
         repHatched.add(name);
         Sfx.vibe(Sfx.HATCH);

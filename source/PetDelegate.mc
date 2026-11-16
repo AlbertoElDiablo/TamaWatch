@@ -107,7 +107,7 @@ class PetDelegate extends WatchUi.BehaviorDelegate {
         // you first, then your team
         rows.add([model.trName != null ? model.trName.toUpper() : Tr.t("TRAINER"), :trainer, 0, -1]);
         rows.add([Tr.t("TEAM"), :team, 0, -1]);
-        rows.add([Tr.t("PET BOX"), :petbox, 0, -1]);
+        rows.add([Tr.t("POKÉBOX"), :petbox, 0, -1]);
         if (model.wantEvolveButton()) { rows.add([Tr.t("EVOLVE!"), :evolve, 0, -1]); }
         if (model.wantFarewellButton()) { rows.add([Tr.t("SAY GOODBYE"), :farewell, 0, -1]); }
         if (model.canRunawayNow()) { rows.add([Tr.t("IT WANTS TO LEAVE"), :runaway, 0, -1]); }
@@ -404,7 +404,7 @@ function partyMenu(model) {
     }
     for (var i = 0; i < model.box.size(); i++) {
         var m = model.box[i];
-        menu.addItem(new WatchUi.MenuItem(Tr.t("[Box] ") + model.memberName(m), Tr.t("Lv ") + m[3] + (m[2] ? " *" : ""), 100 + i, {}));
+        menu.addItem(new WatchUi.MenuItem(Tr.t("[Pokébox] ") + model.memberName(m), Tr.t("Lv ") + m[3] + (m[2] ? " *" : ""), 100 + i, {}));
     }
     return menu;
 }
@@ -424,7 +424,7 @@ class PartyDelegate extends WatchUi.Menu2InputDelegate {
         var m = inParty ? model.party[idx] : model.box[idx];
         var menu = new WatchUi.Menu2({:title => model.memberName(m)});
         menu.addItem(new WatchUi.MenuItem(Tr.t("Info"), Tr.t("Level, IVs, moves"), :info, {}));
-        if (inParty) { menu.addItem(new WatchUi.MenuItem(Tr.t("Move to box"), null, :toBox, {})); }
+        if (inParty) { menu.addItem(new WatchUi.MenuItem(Tr.t("Move to Pokébox"), null, :toBox, {})); }
         else if (model.party.size() < 6) { menu.addItem(new WatchUi.MenuItem(Tr.t("To party"), null, :toParty, {})); }
         menu.addItem(new WatchUi.MenuItem(Tr.t("Release"), Tr.t("Gone for good"), :release, {}));
         menu.addItem(new WatchUi.MenuItem(Tr.t("Back"), null, :back, {}));

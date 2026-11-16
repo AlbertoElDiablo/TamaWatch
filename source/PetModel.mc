@@ -787,7 +787,7 @@ class PetModel {
             say(memberName(m) + Tr.t(" joined your party!"), 3500);
         } else if (box.size() < BOX_MAX) {
             box.add(m);
-            say(memberName(m) + Tr.t(" went to the box"), 3500);
+            say(memberName(m) + Tr.t(" went to the Pokébox"), 3500);
         } else {
             waiting = m;
         }

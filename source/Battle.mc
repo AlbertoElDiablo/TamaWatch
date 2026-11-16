@@ -110,6 +110,11 @@ module Battle {
         if (c.moves.indexOf(0) == 0) { c.moves = bestMoves(m[0], lvl); }
         if (m[1].length() > 0) { c.name = m[1].toUpper(); }
         c.shiny = m[2];
+        // its own HP and care (Care.mc), as the partner's are its own
+        var cv = Care.now(m);
+        c.hp = c.maxHp * cv[4] / 100;
+        if (c.hp < 1) { c.hp = 1; }
+        c.careMiss = Care.miss(m);
         return c;
     }
 

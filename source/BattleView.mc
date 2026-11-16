@@ -113,6 +113,7 @@ class BattleView extends WatchUi.View {
     var foodLost = 0;
     var repSnap = null;
     var ranAway = false;        // the friend left: no result screen, back to the lobby
+    var squadParty = [];        // per squad member: its index in the party (-1: your partner)
 
     function notePet(c) {
         petC = c;
@@ -126,6 +127,16 @@ class BattleView extends WatchUi.View {
             model.repExp = repSnap[0];
             model.repLv = repSnap[1];
             model.repBag = repSnap[2];
+        }
+        // the team members who fought keep their HP too
+        for (var k = 0; k < squad.size() && k < squadParty.size(); k++) {
+            var pi = squadParty[k];
+            if (pi >= 0 && pi < model.party.size()) {
+                var c = squad[k];
+                var p = c.hp * 100 / (c.maxHp > 0 ? c.maxHp : 1);
+                if (p == 0 && c.hp > 0) { p = 1; }
+                Care.setHp(model.party[pi], p);
+            }
         }
         if (petC == null || model.isEgg()) { return; }
         var pct = petC.hp * 100 / (petC.maxHp > 0 ? petC.maxHp : 1);
@@ -153,9 +164,10 @@ class BattleView extends WatchUi.View {
     function buildSquad(cap) {
         squad = [];
         petIn = (squadMask & 1) != 0;
-        if (petIn) { squad.add(Battle.fromPet(model, cap)); }
+        squadParty = [];
+        if (petIn) { squad.add(Battle.fromPet(model, cap)); squadParty.add(-1); }
         for (var i = 0; i < model.party.size() && squad.size() < 6; i++) {
-            if ((squadMask & (1 << (i + 1))) != 0) { squad.add(Battle.fromMember(model.party[i], cap)); }
+            if ((squadMask & (1 << (i + 1))) != 0) { squad.add(Battle.fromMember(model.party[i], cap)); squadParty.add(i); }
         }
         if (squad.size() == 0) { squad.add(Battle.fromPet(model, cap)); petIn = true; }
         if (petIn) { notePet(squad[0]); }
@@ -194,6 +206,8 @@ class BattleView extends WatchUi.View {
         linkHost = isHost;
         peerName = name;
         squad = mine;
+        squadParty = [];                    // LinkView.mySquad(): the pet, then the party in order
+        for (var i = 0; i < squad.size(); i++) { squadParty.add(i - 1); }
         squadAt = 0;
         you = squad[0];
         foeSquad = theirs;
