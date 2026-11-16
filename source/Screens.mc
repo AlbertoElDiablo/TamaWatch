@@ -445,12 +445,15 @@ class SettingsAction {
 // ---------------------------------------------------------------------------------------------
 // GUIDE: a list of topics (like SETTINGS); each opens its own page of text, wrapped to the round
 // screen, that UP/DOWN scroll. Titles and texts are English keys, translated as drawn.
-const GUIDE_TOPICS = [
+// (a function, not a constant: global constants are built in every process, the 32 KB glance
+// too, and these texts alone don't fit there)
+function guideTopics() {
+    return [
     ["BASICS", "Your partner lives on your watch. Feed it with the apple and bathe it with the drop. Its energy is your Body Battery, and it sleeps when you do. Its joy comes from your workouts. Being active earns it EXP, fruit and eggs."],
     ["HP", "The bar under your partner is its HP. Battles take it and it keeps what is left: your next battle starts from there. A battle that costs 40% or more of it also costs some food. HP refills by itself, from empty to full in 15 minutes. Each fruit gives some back at once, and so does every training game; a recorded activity gives back half of it."],
     ["GOOD CARE", "Look after your partner before a fight: when food, hygiene or joy is under half, its attacks miss more often (up to 4 in 10 when all three are empty). A training game sometimes finds a piece of fruit, at most one per game. Care alerts wait while you record an activity, so nothing buzzes mid-run."],
     ["TRAINING", "Each workout you record (5 min or more) fills joy and trains a stat: running SPEED, cycling and swimming DEFENSE, strength and gym ATTACK; walks, hikes and the rest train a random one. Joy slowly drops over a week, so keep up your trainings per week. The football has three mini-games."],
-    ["EXP & LEVELS", "Every 50 steps give 1 EXP and every intensity minute 10 EXP. Steps add up over time: a few now and a few later still count. Battles give EXP too: wild fights a few times a day, gyms and link battles more. Your partner gets all of it and the rest of the team 25%. New levels teach moves and let it evolve."],
+    ["EXP & LEVELS", "Every 50 steps give 1 EXP. Each activity you record gives EXP by its length and sport, per minute: running or swimming 20, strength or gym 27, cycling 15, hiking 12, walking 8, anything else 15 (so 45 minutes of weights pay like an hour's run). Intensity minutes outside your recorded activities give 10 EXP each. Battles give EXP too: wild fights a few times a day, gyms and link battles more. Your partner gets all of it and the rest of the team 25%. New levels teach moves and let it evolve."],
     ["FOOD & FRUIT", "Fruit is earned: an apple for every 3,000 steps (they add up over time, so 2,000 now and 1,000 later earn it), for every 20 active minutes and at each third of your step goal; a berry or an orange for each workout and for reaching your step goal; candy for your weekly goal and each gym win. Every species has a favourite fruit."],
     ["EGGS", "Every 15,000 steps earns an egg, at most 2 in any 7 days. Steps carry over until you reach 15,000, but while you already have 2 eggs from the last 7 days they don't count. Open the app to collect it, then walk 1,000 to 3,000 steps to hatch it. It joins your team, or the pet box if the team is full."],
     ["BATTLES & GYMS", "Fight wild creatures from the menu and beat the 8 gyms in order to earn badges. Hard gyms are tougher and stay closed while your Body Battery is 20% or less. Link battles let you fight a friend online through your phone, or nearby watch to watch."],
@@ -458,10 +461,12 @@ const GUIDE_TOPICS = [
     ["REGIONS", "This TamaWatch holds the {0} region. Every region is its own version of the app, with its own game: pick another on the TamaWatch website. Link battles work with friends of any region; trades need the same one."],
     ["SETTINGS", "Vibration turns the buzz on or off. Care alerts send reminders when your partner needs you, and news about eggs. Trainings/week is your weekly workout target; it adjusts to what you really do. Language changes the whole app."],
     ["BUTTONS", "UP and DOWN move, START picks and BACK goes back. Hold UP, or pick the book, for the menu. In the Pokedex and the pet box, UP and DOWN turn pages until START picks on the page."]];
+}
 
 function guidePanel() {
     var rows = [];
-    for (var i = 0; i < GUIDE_TOPICS.size(); i++) { rows.add([GUIDE_TOPICS[i][0], i, 0, -1]); }
+    var topics = guideTopics();
+    for (var i = 0; i < topics.size(); i++) { rows.add([topics[i][0], i, 0, -1]); }
     var pv = new PanelView("GUIDE", rows, null);
     pv.tr = true;
     return [pv, new PanelDelegate(pv, new GuideAction())];
@@ -492,10 +497,12 @@ class GuideView extends WatchUi.View {
 
         dc = Scr.wrap(dc);              // any screen size: see Sdc.mc
         var cx = dc.getWidth() / 2;
-        drawDisc(dc, Tr.t(GUIDE_TOPICS[topic][0]));
+        var gt = guideTopics()[topic];
+        drawDisc(dc, Tr.t(gt[0]));
         var f = Graphics.FONT_XTINY;
         // the text in lines as wide as the circle allows where each will be drawn
-        var words = Wire.split(Tr.f(GUIDE_TOPICS[topic][1], [Region.NAME]), " ");
+        var words = Wire.split(Tr.f(gt[1], [Region.NAME]), " ");
+        gt = null;
         var lines = [];
         var line = "";
         for (var i = 0; i < words.size(); i++) {

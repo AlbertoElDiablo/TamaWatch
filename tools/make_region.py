@@ -164,8 +164,6 @@ region_mc = '''import Toybox.Lang;
 module Region {
     const ID = "%s";
     const NAME = "%s";
-    // national numbers of species 1..COUNT
-    const NAT = [%s];
 
     // A text naming the region: the translation, with KANTO (as the tables write it) replaced.
     function t(s) {
@@ -176,7 +174,9 @@ module Region {
         return out.substring(0, at) + NAME + out.substring(at + 5, out.length());
     }
 
-    function national(n) { return NAT[n - 1]; }
+    // the national number of species n (an array built when asked: a constant would sit in every
+    // process, the small glance too)
+    function national(n) { return [%s][n - 1]; }
 }
 ''' % (RID, R.NAME, ", ".join(str(n) for n in R.SPECIES))
 open(os.path.join(APP, "source", "Region.mc"), "w").write(region_mc)

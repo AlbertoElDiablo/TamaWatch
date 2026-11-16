@@ -28,7 +28,10 @@ regions = [{"id": k, "name": RG.REGIONS[k][2].title(), "first": RG.REGIONS[k][0]
 # TW_SITE_REGIONS="kanto johto": only those (the ones already in the release)
 if os.environ.get("TW_SITE_REGIONS"):
     keep = os.environ["TW_SITE_REGIONS"].split()
+    later = [r["name"] for r in regions if r["id"] not in keep]
     regions = [r for r in regions if r["id"] in keep]
+else:
+    later = []
 
 PAGE = r"""<!doctype html>
 <html lang="en">
@@ -105,6 +108,7 @@ PAGE = r"""<!doctype html>
       <li><b>Care counts in battle.</b> A hungry, dirty or unhappy partner misses more of its attacks.</li>
       <li><b>Training games can find fruit</b>, one piece at most, now and then.</li>
       <li><b>No alerts mid-workout.</b> Care reminders wait while you're recording an activity.</li>
+      <li><b>Workouts pay EXP by length and sport</b>, so weights earn as much as cardio.</li>
       <li><b>Recorded activities count again.</b> Watches that date them differently were skipping every workout; now each one pays.</li>
       <li><b>Battle friends from any region.</b> Trades stay within one region.</li>
       <li>A new page at the start of the game points you to the in-app <b>GUIDE</b>. Worth a read!</li>
@@ -117,7 +121,7 @@ PAGE = r"""<!doctype html>
       <h2 id="s0">Choose your region</h2>
       <p class="note">Each region is its own TamaWatch, with its own creatures and its own game, so trying another
       never touches the one you have. <b>Kanto</b> is the original: installing it over an older TamaWatch keeps your game.</p>
-      <div id="regions" class="regions" role="group" aria-label="Region"></div>
+      <div id="regions" class="regions" role="group" aria-label="Region"></div>__LATER__
     </div>
   </section>
 
@@ -203,9 +207,13 @@ PAGE = r"""<!doctype html>
       <p>The three training games on the football button sometimes turn up a piece of fruit: an apple, a blue berry
       or an orange. One piece at most per game, and about one game in three.</p></details>
     <details><summary>Your activities</summary>
-      <p>Every activity you record on the watch (5 minutes or more) fills your partner's joy, trains a stat
-      (running speed, cycling and swimming defence, strength attack) and gives back HP. Care alerts wait while
-      you're recording, so nothing buzzes mid-run.</p></details>
+      <p>Every activity you record on the watch (5 minutes or more) pays EXP by its length and sport. Per minute:
+      running or swimming 20, strength or gym 27, cycling 15, hiking 12, walking 8, anything else 15. Weights raise
+      your heart rate less but are just as hard, so 45 minutes of weights pay like an hour's run or 80 minutes on the
+      bike (about 1,200 EXP). It also fills your partner's joy, trains a stat (running speed, cycling and swimming
+      defence, strength attack), gives a berry or an orange (one more for every 45 minutes) and gives back HP.
+      Intensity minutes outside your recorded activities still give 10 EXP each. Care alerts wait while you're
+      recording, so nothing buzzes mid-run.</p></details>
     <details><summary>Regions, battles and trades</summary>
       <p>Your watch holds one region. Link battles work with a friend playing any region: a creature your watch has
       no picture of shows as an orb in its type's colours, and fights with its real types and moves. Trades need the
@@ -322,6 +330,10 @@ pickRegion(REGIONS.find(r => r.id === savedRegion) || REGIONS[0]);
 </html>
 """
 
+LATER = ("" if not later else '\n      <p class="note">%s %s on %s way: %s appear here as soon as %s files are up.</p>'
+         % (", ".join(later[:-1]) + (" and " if len(later) > 1 else "") + later[-1], "are" if len(later) > 1 else "is",
+            "their" if len(later) > 1 else "its", "they'll" if len(later) > 1 else "it'll", "their" if len(later) > 1 else "its"))
+PAGE = PAGE.replace("__LATER__", LATER)
 page = PAGE.replace("__WATCHES__", json.dumps(watches, ensure_ascii=False)).replace("__REGIONS__", json.dumps(regions)).replace("__REPO__", REPO)
 os.makedirs(os.path.join(APP, "docs"), exist_ok=True)
 open(os.path.join(APP, "docs", "index.html"), "w", encoding="utf-8").write(page)

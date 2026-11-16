@@ -32,6 +32,29 @@ const HP_GAME = 25;
 const HP_WORKOUT = 50;
 
 var workoutsRead = 0;            // when PetModel.claimWorkouts last read the history (UTC epoch)
+// Intensity minutes a recorded activity already paid for (as its own EXP): taken off the next
+// intensity minutes read, so the same effort isn't paid twice. Saved in "bag".
+var amCredit = 0;
+
+// EXP a minute of a recorded activity, by sport: about 10 for each intensity minute it is worth,
+// weighted so the same effort pays the same. Strength raises the heart rate less (fewer intensity
+// minutes) but is as hard: 45 minutes of weights ~ 60 of running ~ 80 of cycling ~ 1,200 EXP.
+// And how many of the watch's intensity minutes a minute of it usually makes (x2: vigorous
+// minutes count double), which amCredit holds back.
+function workoutExp(sport) {
+    if (sport == Activity.SPORT_RUNNING || sport == Activity.SPORT_SWIMMING) { return 20; }
+    if (sport == Activity.SPORT_TRAINING || sport == Activity.SPORT_FITNESS_EQUIPMENT) { return 27; }
+    if (sport == Activity.SPORT_CYCLING) { return 15; }
+    if (sport == Activity.SPORT_HIKING) { return 12; }
+    if (sport == Activity.SPORT_WALKING) { return 8; }
+    return 15;
+}
+function workoutIm2(sport) {           // intensity minutes x2 per minute
+    if (sport == Activity.SPORT_RUNNING) { return 4; }
+    if (sport == Activity.SPORT_CYCLING || sport == Activity.SPORT_SWIMMING) { return 3; }
+    if (sport == Activity.SPORT_HIKING) { return 2; }
+    return 1;
+}
 
 // Recorded activities' start times come in the watch's own clock, counted from 31 Dec 1989
 // (Garmin's epoch) on many watches rather than from 1970: read as 1970 time they look 20 years
@@ -819,7 +842,7 @@ class PetModel {
         if (bag[color] <= 0) { say(Tr.t("None left: get active!"), 2500); return; }
         bag[color]--;
         if (lovesBerry(color)) {
-            food = clamp100(food + 35);
+            food = clamp100(food + 49);        // 40 % more than TamaPoke's 35
             joy = clamp100(joy + 2);
             heartUntil = ms() + HEART_MS;
             if (!berryKnown) { say(Tr.t("It loves this one!"), 2500); }
@@ -827,7 +850,7 @@ class PetModel {
             addBond(2);
             Hp.heal(self, HP_FRUIT + 10);
         } else {
-            food = clamp100(food + 25);
+            food = clamp100(food + 35);        // (25)
             Hp.heal(self, HP_FRUIT);
         }
         startEating(color);
@@ -837,7 +860,7 @@ class PetModel {
         if (!canAct()) { return; }
         if (bag[FOOD_CANDY] <= 0) { say(Tr.t("No candy: weekly goal!"), 2500); return; }
         bag[FOOD_CANDY]--;
-        food = clamp100(food + 10);
+        food = clamp100(food + 14);            // (10)
         joy = clamp100(joy + 2);
         weight = clamp100(weight + 12);
         Hp.heal(self, HP_FRUIT / 2);
@@ -1000,27 +1023,31 @@ class PetModel {
             say(Tr.t("FLOORS GOAL! DEF +2"), 3500);
             save();
         }
+        claimWorkouts();                // first: what it pays, the intensity minutes don't again
         claimActive(info);
-        claimWorkouts();
         claimWeek(info);
         checkMoveBar(info);
     }
 
     // ---------- workouts, the active week, the move bar ----------
 
-    // Each recorded activity pays once: a level per 20 minutes (at most 4 a day) and training
-    // by sport: running SPD, strength ATK, cycling/swimming DEF, walking/hiking joy and bond.
-    // Your intensity minutes are the creature's EXP (10 a minute). Read as the week's total, so a
-    // drop means a new week started.
+    // Your intensity minutes are the creature's EXP (10 a minute), less those a recorded activity
+    // already paid for (amCredit; claimWorkouts runs first). Read as the week's total, so a drop
+    // means a new week started (and the last week's credit no longer applies).
     function claimActive(info) {
         if (isEgg() || !(info has :activeMinutesWeek) || info.activeMinutesWeek == null) { return; }
         var total = info.activeMinutesWeek.total;
         if (total == null) { return; }
         if (lastAM < 0) { lastAM = total; return; }       // counting starts now
         var delta = total >= lastAM ? total - lastAM : total;
+        if (total < lastAM) { $.amCredit = 0; }
         lastAM = total;
         if (delta <= 0) { return; }
         activeTotal += delta;
+        var c = $.amCredit < delta ? $.amCredit : delta;
+        $.amCredit -= c;
+        delta -= c;
+        if (delta <= 0) { saveTrainer(); save(); return; }
         repMin += delta;
         amFruit += delta;
         if (amFruit >= MIN_PER_APPLE) { giveFruit(0, amFruit / MIN_PER_APPLE); amFruit = amFruit % MIN_PER_APPLE; }
@@ -1051,8 +1078,9 @@ class PetModel {
         return j < 8 ? 8 : j;
     }
 
-    // Each recorded activity pays once: joy (your weekly target's worth), bond, and training by
-    // sport: running SPD, strength ATK, cycling/swimming DEF, anything else into a stat with room.
+    // Each recorded activity pays once: EXP by its length and sport (workoutExp), joy (your weekly
+    // target's worth), fruit, bond, HP, and training by sport: running SPD, strength ATK,
+    // cycling/swimming DEF, anything else into a stat with room.
 
     function claimWorkouts() {
         if (!(Toybox has :UserProfile) || !(UserProfile has :getUserActivityHistory)) { return; }
@@ -1085,7 +1113,7 @@ class PetModel {
             if (m < 5) { continue; }                       // a few minutes is not a workout
             weekCnt++;
             repWork++;
-            giveFruit(1 + rnd(2), m >= 45 ? 2 : 1);
+            giveFruit(1 + rnd(2), 1 + m / 45);        // a berry or an orange, one more each 45 min
             var jg = joyPerTraining();
             var before = joy;
             joy = clamp100(joy + jg);
@@ -1111,7 +1139,11 @@ class PetModel {
             }
             addBond(3 + m / 20);
             Hp.heal(self, HP_WORKOUT);
-            msg = label + " " + m + Tr.t("m: JOY +") + (joy - before) + " " + gain;
+            // its EXP, by length and sport; its intensity minutes won't be paid again
+            var xp = gainExp(m * workoutExp(sp));
+            $.amCredit += m * workoutIm2(sp) / 2;
+            if ($.amCredit > 2000) { $.amCredit = 2000; }
+            msg = label + " " + m + "m: +" + xp + " EXP, " + gain;
         }
         saveTrainer();
         if (msg == null) { return; }
@@ -1168,6 +1200,7 @@ class PetModel {
         if (b == null || b.size() < 5) { return; }     // first time: the starting bag
         bag = [b[0], b[1], b[2], b[3]];
         amFruit = b[4];
+        $.amCredit = b.size() > 5 ? b[5] : 0;
     }
 
     function loadTrainer() {
@@ -1506,7 +1539,7 @@ class PetModel {
             }
             Storage.setValue("gthumb", runs);
         }
-        Storage.setValue("bag", [bag[0], bag[1], bag[2], bag[3], amFruit]);
+        Storage.setValue("bag", [bag[0], bag[1], bag[2], bag[3], amFruit, $.amCredit]);
         Storage.setValue("fit", [actSeen, xpDay, xpToday, bonusLv, eggSteps, eggNeed, stepRead, stepReadDay,
                                  weekPaid, restless, exp, wildDay, wildWins]);
         // a small summary for the background check and the widget glance

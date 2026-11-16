@@ -14,8 +14,12 @@ watch models.
 ## What it does
 
 - **Your activity raises it.** Every 50 steps give it 1 EXP and every 3,000 steps an apple (steps add
-  up over time). Intensity minutes give EXP, recorded workouts fill its joy and train a stat
-  (running speed, cycling and swimming defence, strength attack).
+  up over time). Each activity you record pays EXP by its length and sport, per minute: running or
+  swimming 20, strength/gym 27, cycling 15, hiking 12, walking 8, anything else 15. Strength raises
+  your heart rate less but is as hard, so 45 minutes of weights pay like an hour's run or 80 minutes
+  on the bike (about 1,200 EXP). It also fills joy, trains a stat (running speed, cycling and
+  swimming defence, strength attack) and gives fruit. Intensity minutes outside recorded activities
+  give 10 EXP each.
 - **It lives your day.** Its energy is your Body Battery and it sleeps when you do. Feed it, bathe
   it, clean up after it.
 - **Eggs from walking.** Every 15,000 steps earn an egg (at most 2 a week); walk more to hatch it.
