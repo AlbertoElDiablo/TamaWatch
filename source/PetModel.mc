@@ -518,11 +518,12 @@ class PetModel {
         var d = lastSeen == 0 ? 0 : (lastSeen + localOffset() - 6 * 3600) / 86400;
         if (!isEgg() && d > 0 && d != $.giftDay) {
             $.giftDay = d;
+            var got = 0;
             for (var k = 0; k < 2; k++) {
                 var item = rnd(3);
-                if (bag[item] < 99) { bag[item] += 1; }
+                if (k == 0 || Hp.keep(self)) { got += 1; if (bag[item] < 99) { bag[item] += 1; } }   // (one always)
             }
-            say(Tr.t("Daily gift: 2 fruit!"), 5000);
+            say(got == 2 ? Tr.t("Daily gift: 2 fruit!") : Tr.t("Daily gift: 1 fruit!"), 5000);
             save();
         }
         if (done > 0) { save(); }
@@ -1236,6 +1237,11 @@ class PetModel {
     // Fruit into the bag (0 apple, 1 blue berry, 2 orange, 3 candy). A species' favourite is
     // dex % 3 of the first three, so the ones that loved the green berry now love the orange.
     function giveFruit(item, n) {
+        if (item < 3) {                                  // fruit: less of it when the bag is full (Hp.keep)
+            var k = 0;
+            for (var i = 0; i < n; i++) { if (Hp.keep(self)) { k += 1; } }
+            n = k;
+        }
         bag[item] += n;
         if (bag[item] > 99) { bag[item] = 99; }
         repBag[item] += n;

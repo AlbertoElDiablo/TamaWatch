@@ -1,3 +1,4 @@
+import Toybox.Application;
 import Toybox.Graphics;
 import Toybox.Lang;
 import Toybox.Math;
@@ -114,7 +115,19 @@ class MiniGameView extends WatchUi.View {
         else if (mode == DODGE) { gain = model.trainSpeed(score); }
         else { gain = model.playResult(score); }
         found = Hp.afterGame(model);
+        if (mode == BRACE) {
+            // Route Crossing keeps its furthest run
+            var b = Application.Storage.getValue("rcBest");
+            best = b instanceof Number ? b : 0;
+            if (score > best) {
+                newBest = best > 0;
+                best = score;
+                Application.Storage.setValue("rcBest", score);
+            }
+        }
     }
+    var best = -1;              // Route Crossing's record (-1: another game)
+    var newBest = false;        // ... just beaten
     var found = -1;             // the fruit found during the game (-1: none)
 
     // the stat this game trains is already as high as its IV allows
@@ -224,7 +237,7 @@ class MiniGameView extends WatchUi.View {
     function laneAt(k) {
         while (made < k) { makeLane(made + 1); }
         var l = lanes.get(k);
-        return l != null ? l : [0, 1, 0, []];
+        return l != null ? l : [0, 1, 0, []];                   // (behind the start: plain grass)
     }
 
     // One row, the way expo-crossy-road's CrossyGame.newRow makes it: the first rows grass (the
@@ -234,11 +247,17 @@ class MiniGameView extends WatchUi.View {
     function makeLane(k) {
         made = k;
         var prev = lanes.get(k - 1);
+        // and harder the further it goes (h 0 at the start .. 100 a hundred rows on): less grass,
+        // busier grass, faster roads and rivers, shorter logs further apart, fewer pads, more trains
+        var h = k > 100 ? 100 : k;
         var kind = 0;
         if (k >= 5) {
-            var r = rnd(3);
-            if (r == 1) { kind = rnd(4) == 0 ? 4 : 1; }
-            else if (r == 2) { kind = k % 2 == 0 ? 3 : 2; }
+            var r = rnd(100);
+            var grass = 34 - h / 7;                              // a third, down to a fifth
+            if (r >= grass) {
+                if (r < grass + (100 - grass) / 2) { kind = rnd(100) < 25 + h / 10 ? 4 : 1; }
+                else { kind = k % 2 == 0 ? 3 : 2; }
+            }
         }
         var items = [];
         var dir = rnd(2) == 0 ? -1 : 1;
@@ -247,7 +266,7 @@ class MiniGameView extends WatchUi.View {
             // Grass.treeGen: walking the columns, each (but the middle one) gets a rock or tree four
             // times in ten, until 1-3 stand; a lily pad just behind keeps its column open
             if (k >= 2) {
-                var count = 1 + rnd(3);
+                var count = 1 + rnd(3) + h / 50;
                 var n = 0;
                 for (var c = 0; c < COLS && n < count; c++) {
                     if (c == 2 || (prev != null && prev[0] == 3 && bush(prev, c))) { continue; }
@@ -262,7 +281,7 @@ class MiniGameView extends WatchUi.View {
             // them on an open column of the grass just behind
             var cols = [] as Array<Number>;
             var pc = rnd(2);
-            var pads = 2 + rnd(2);
+            var pads = 2 + (rnd(100) < 60 - h / 2 ? 1 : 0);
             for (var i = 0; i < pads && pc < COLS; i++) { cols.add(pc); pc += 2 + rnd(2); }
             if (prev != null && prev[0] == 0) {
                 var ok = false;
@@ -281,22 +300,22 @@ class MiniGameView extends WatchUi.View {
         } else if (kind == 2) {
             // Water.generateDynamic: 2-3 logs at one speed (1.2-4.2 tiles a second), each 5-8
             // tiles behind the last (here 3.3-5.3 columns), of the log models' lengths
-            speed = 43 + rnd(108);
+            speed = (43 + rnd(108)) * (100 + h * 7 / 10) / 100;
             var x = rnd(PERIOD);
             var first = x;
             var n = 2 + rnd(2);
             for (var i = 0; i < n; i++) {
-                var w = 52 + rnd(45);
+                var w = 52 + rnd(45) - h / 4;
                 if (i > 0 && x + w > first + PERIOD - 24) { break; }     // room to wrap round
                 items.add([(x % PERIOD).toFloat(), w, 0]);
-                x += 120 + rnd(73);
+                x += 120 + rnd(73) + h / 3;
             }
         } else {
             // Road.generate: 1-2 cars (wild creatures here) at one speed (1.2-4.8 tiles a second),
             // each 5-8 tiles behind the last
-            speed = 43 + rnd(130);
+            speed = (43 + rnd(130)) * (100 + h * 7 / 10) / 100;
             var x = rnd(PERIOD);
-            var cars = 1 + rnd(2);
+            var cars = 1 + rnd(2) + (rnd(100) < h / 2 ? 1 : 0);
             for (var i = 0; i < cars; i++) {
                 var who = 1;
                 for (var t = 0; t < 10; t++) {
@@ -357,7 +376,7 @@ class MiniGameView extends WatchUi.View {
                     var lo = was < t[0] ? was : t[0];
                     var hi = (was > t[0] ? was : t[0]) + t[1];
                     if (k == row && px > lo + 6 && px < hi - 6) { crash(Tr.t("OUCH")); return; }
-                    if (t[0] > FIELD_W + 40 || t[0] < -t[1] - 40) { t[0] = -999.0; l[4] = now + 3500 + rnd(2000); }
+                    if (t[0] > FIELD_W + 40 || t[0] < -t[1] - 40) { t[0] = -999.0; l[4] = now + 3500 + rnd(2000) - (row > 100 ? 100 : row) * 15; }
                 }
             }
         }
@@ -438,16 +457,24 @@ class MiniGameView extends WatchUi.View {
     function drawResult(dc, cx) {
         var stat = [Tr.t("STRENGTH"), Tr.t("SPEED"), Tr.t("DEFENSE")];
         dc.drawText(cx, 80, Graphics.FONT_MEDIUM, score + Tr.t(" points"), Graphics.TEXT_JUSTIFY_CENTER);
+        var ly = 120;
+        if (best >= 0) {
+            // this run against the record
+            dc.setColor(newBest ? 0x00AA00 : TEXT_GREY, Graphics.COLOR_TRANSPARENT);
+            dc.drawText(cx, 120, Graphics.FONT_XTINY, newBest ? Tr.t("NEW BEST!") : Tr.f("BEST {0}", [best]), Graphics.TEXT_JUSTIFY_CENTER);
+            dc.setColor(INK, Graphics.COLOR_TRANSPARENT);
+            ly = 144;
+        }
         // what it trained, or why nothing: that stat is already full, or too few points;
         // a size smaller (and trimmed) when the language needs more room
         var line = gain > 0 ? stat[mode] + " +" + gain : (statFull() ? stat[mode] + ": " + Tr.t("Fully trained")
                    : (Extra.gamesLeft() == 0 ? Tr.t("Enough training for today") : Tr.t("No training gained")));
         var lf = Fit.font(dc, line, 200, [Graphics.FONT_SMALL, Graphics.FONT_TINY, Graphics.FONT_XTINY]);
-        dc.drawText(cx, 120, lf, Fit.trim(dc, line, 210, lf), Graphics.TEXT_JUSTIFY_CENTER);
+        dc.drawText(cx, ly, lf, Fit.trim(dc, line, 210, lf), Graphics.TEXT_JUSTIFY_CENTER);
         if (found >= 0) {
             var fruit = [Tr.t("Found an apple!"), Tr.t("Found a blue berry!"), Tr.t("Found an orange!")];
             dc.setColor(0x00AA00, Graphics.COLOR_TRANSPARENT);
-            dc.drawText(cx, 152, Graphics.FONT_XTINY, fruit[found], Graphics.TEXT_JUSTIFY_CENTER);
+            dc.drawText(cx, ly + 28, Graphics.FONT_XTINY, fruit[found], Graphics.TEXT_JUSTIFY_CENTER);
         }
         dc.setColor(TEXT_GREY, Graphics.COLOR_TRANSPARENT);
         dc.drawText(cx, 200, Graphics.FONT_XTINY, Tr.t("START"), Graphics.TEXT_JUSTIFY_CENTER);
@@ -512,9 +539,8 @@ class MiniGameView extends WatchUi.View {
         RouteArt.make();
         var x0 = cx - FIELD_W / 2;
         var now = System.getTimer();
-        for (var s = LANES - 1; s >= -1; s--) {          // (and one more above the top edge)
+        for (var s = LANES; s >= -1; s--) {              // (and one more past each edge)
             var k = row + (STAND - s);
-            if (k < 0) { continue; }
             drawLane(dc, laneAt(k), k, x0, TOP + s * RH, now);
         }
         // the rocks, trees and bushes over the ground, further ones first (a tall tree stands in
@@ -532,7 +558,7 @@ class MiniGameView extends WatchUi.View {
             dc.drawBitmap(ppx - 20 - (cell * 48 + 4), top - 22, kids);
             dc.clearClip();
         }
-        things(dc, x0, STAND + 1, LANES - 1);
+        things(dc, x0, STAND + 1, LANES);
         // the distance, in a box at the top; how to play until the first hop
         dc.setColor(0xFFFFFF, Graphics.COLOR_TRANSPARENT);
         dc.fillRoundedRectangle(cx - 28, 16, 56, 30, 8);
@@ -588,7 +614,6 @@ class MiniGameView extends WatchUi.View {
         if (kids == null) { return; }
         for (var s = s0; s <= s1; s++) {
             var k = row + (STAND - s);
-            if (k < 0) { continue; }
             var l = laneAt(k);
             if (l[0] != 0) { continue; }
             var base = TOP + s * RH + RH - 2 - 72;
