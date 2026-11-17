@@ -208,7 +208,7 @@ class MiniGameView extends WatchUi.View {
     const COLS = 6;
     const CW = 36;                        // a column's width
     const FIELD_W = 216;                  // COLS * CW
-    const PERIOD = 288;                   // items wrap round every this many px
+    const PERIOD = 528;                   // items wrap round every this many px (its 22 tiles, scaled)
     const RH = 30;                        // a lane's height on screen
     const TOP = 5;                        // the field's top on screen (9 lanes fill the round screen)
     const LANES = 9;
@@ -217,10 +217,8 @@ class MiniGameView extends WatchUi.View {
     // Lanes are made in order, a few ahead. Kinds (after expo-crossy-road's rows, MIT, by Evan
     // Bacon): 0 grass (trees block), 1 path (wild creatures dash across), 2 river with drifting
     // logs, 3 river with still lily pads, 4 railway (a light flashes, then a train sweeps by).
-    // A clear way through always exists: pathCol wanders a column at a time, and no tree stands
-    // on it (nor on the last one's) and a lily pad always floats on it.
+    // A way through: the middle column's grass is never blocked, and pads and open grass line up.
     var made = -1;
-    var pathCol = 2;
     var lastHop = 0;
 
     function laneAt(k) {
@@ -229,57 +227,84 @@ class MiniGameView extends WatchUi.View {
         return l != null ? l : [0, 1, 0, []];
     }
 
+    // One row, the way expo-crossy-road's CrossyGame.newRow makes it: the first rows grass (the
+    // start's open, the next ones dotted), then grass, a road or a river, each as likely; a road is
+    // a railway one time in four; a river on an even row holds lily pads, on an odd one drifting
+    // logs. Its sizes are scaled from its 9-tile field to our 6 columns (its 22-tile wrap: PERIOD).
     function makeLane(k) {
         made = k;
-        var prevCol = pathCol;
-        pathCol += rnd(3) - 1;
-        if (pathCol < 0) { pathCol = 0; }
-        if (pathCol > COLS - 1) { pathCol = COLS - 1; }
+        var prev = lanes.get(k - 1);
         var kind = 0;
-        if (k > 1) {
-            var a = lanes.get(k - 1);
-            var b = lanes.get(k - 2);
-            var wet = a != null && a[0] >= 2 && a[0] <= 3 && b != null && b[0] >= 2 && b[0] <= 3;
-            var r = rnd(100);
-            var g = 30 - k / 4 < 16 ? 16 : 30 - k / 4;            // less grass to rest on, further on
-            kind = r < g ? 0 : (r < 62 ? 1 : (r < 75 ? 2 : (r < 84 ? 3 : 4)));
-            if ((kind == 2 || kind == 3) && (wet || k < 4)) { kind = 1; }
-            if (kind == 4 && k < 6) { kind = 0; }
-            if (kind == 3 && a != null && a[0] == 2) { kind = 0; }      // no jump from a log to a pad
+        if (k >= 5) {
+            var r = rnd(3);
+            if (r == 1) { kind = rnd(4) == 0 ? 4 : 1; }
+            else if (r == 2) { kind = k % 2 == 0 ? 3 : 2; }
         }
         var items = [];
         var dir = rnd(2) == 0 ? -1 : 1;
-        // the further, the faster and the busier
-        var speed = 24 + (k * 6 / 5 > 90 ? 90 : k * 6 / 5) + rnd(16 + k / 5);
-        var trees = 20 + (k / 3 > 20 ? 20 : k / 3);
+        var speed = 0;
         if (kind == 0) {
-            if (k > 1) {
-                for (var c = 0; c < COLS; c++) {
-                    if (c != pathCol && c != prevCol && rnd(100) < trees) { items.add([c * CW, CW, rnd(12)]); }
+            // Grass.treeGen: walking the columns, each (but the middle one) gets a rock or tree four
+            // times in ten, until 1-3 stand; a lily pad just behind keeps its column open
+            if (k >= 2) {
+                var count = 1 + rnd(3);
+                var n = 0;
+                for (var c = 0; c < COLS && n < count; c++) {
+                    if (c == 2 || (prev != null && prev[0] == 3 && bush(prev, c))) { continue; }
+                    if (rnd(10) >= 6) {
+                        items.add([c * CW, CW, rnd(10) < 4 ? rnd(4) : 4 + rnd(8)]);   // 40 % rocks
+                        n++;
+                    }
                 }
             }
-            speed = 0;
         } else if (kind == 3) {
-            pathCol = prevCol;                                   // the pad right ahead of the way
-            items.add([pathCol * CW, CW, 0]);
-            for (var c = 0; c < COLS; c++) {
-                if (c != pathCol && rnd(100) < (35 - k / 2 < 8 ? 8 : 35 - k / 2)) { items.add([c * CW, CW, 0]); }
+            // Water.generateStatic: 2-3 pads, 2-3 columns apart from one of the first two; one of
+            // them on an open column of the grass just behind
+            var cols = [] as Array<Number>;
+            var pc = rnd(2);
+            var pads = 2 + rnd(2);
+            for (var i = 0; i < pads && pc < COLS; i++) { cols.add(pc); pc += 2 + rnd(2); }
+            if (prev != null && prev[0] == 0) {
+                var ok = false;
+                for (var i = 0; i < cols.size(); i++) { if (!bush(prev, cols[i])) { ok = true; } }
+                if (!ok) {
+                    var open = [] as Array<Number>;
+                    for (var oc = 0; oc < COLS; oc++) { if (!bush(prev, oc)) { open.add(oc); } }
+                    cols[0] = open[rnd(open.size())];
+                }
             }
-            speed = 0;
+            for (var i = 0; i < cols.size(); i++) { items.add([cols[i] * CW, CW, 0]); }
         } else if (kind == 4) {
-            speed = 320;
-            items.add([-999.0, 3 * CW, 0]);                      // the train, waiting off the field
-        } else {
-            var n = kind == 1 ? 1 + rnd(2) + (k > 15 ? 1 : 0) + (k > 35 ? 1 : 0) : (k > 30 ? 2 : 3);
+            // RailRoad: a train of 1-3 carriages, very fast, round every few seconds
+            speed = 960;
+            items.add([-999.0, (1 + rnd(3)) * CW, 0]);
+        } else if (kind == 2) {
+            // Water.generateDynamic: 2-3 logs at one speed (1.2-4.2 tiles a second), each 5-8
+            // tiles behind the last (here 3.3-5.3 columns), of the log models' lengths
+            speed = 43 + rnd(108);
+            var x = rnd(PERIOD);
+            var first = x;
+            var n = 2 + rnd(2);
             for (var i = 0; i < n; i++) {
-                // a path's are wild creatures dashing across (30 wide); a river's, logs (shorter, further on)
-                var w = kind == 1 ? 30 : (100 - k < 52 ? 52 : 100 - k) + rnd(24);
+                var w = 52 + rnd(45);
+                if (i > 0 && x + w > first + PERIOD - 24) { break; }     // room to wrap round
+                items.add([(x % PERIOD).toFloat(), w, 0]);
+                x += 120 + rnd(73);
+            }
+        } else {
+            // Road.generate: 1-2 cars (wild creatures here) at one speed (1.2-4.8 tiles a second),
+            // each 5-8 tiles behind the last
+            speed = 43 + rnd(130);
+            var x = rnd(PERIOD);
+            var cars = 1 + rnd(2);
+            for (var i = 0; i < cars; i++) {
                 var who = 1;
                 for (var t = 0; t < 10; t++) {
                     who = 1 + rnd(Dex.COUNT);
                     if (Dex.rarity(who) != Dex.R_LEGEND) { break; }
                 }
-                items.add([(i * PERIOD / n + rnd(30)).toFloat(), w, who]);
+                items.add([(x % PERIOD).toFloat(), 30, who]);
+                x += 120 + rnd(73);
             }
         }
         // [kind, direction, speed, items, railway: when the next train comes (ms)]
@@ -287,9 +312,9 @@ class MiniGameView extends WatchUi.View {
         lanes.remove(k - 12);
     }
 
-    // a rock, tree or bush in the grass at column c?
+    // a rock, tree or bush in the grass (or a lily pad in the river) at column c?
     function bush(l, c) {
-        if (l[0] != 0) { return false; }
+        if (l[0] != 0 && l[0] != 3) { return false; }    // (a pad in the river counts too)
         for (var i = 0; i < l[3].size(); i++) { if (l[3][i][0] == c * CW) { return true; } }
         return false;
     }
@@ -326,8 +351,13 @@ class MiniGameView extends WatchUi.View {
                 var t = l[3][0];
                 if (now >= l[4] && t[0] < -900) { t[0] = (l[1] > 0 ? -t[1] - 20 : FIELD_W + 20).toFloat(); }
                 if (t[0] > -900) {
+                    var was = t[0];
                     t[0] += l[1] * l[2] * sec;
-                    if (t[0] > FIELD_W + 40 || t[0] < -t[1] - 40) { t[0] = -999.0; l[4] = now + 2500 + rnd(5000 - row * 60 < 1500 ? 1500 : 5000 - row * 60); }
+                    // so fast it could jump past you between two frames: anything it swept over
+                    var lo = was < t[0] ? was : t[0];
+                    var hi = (was > t[0] ? was : t[0]) + t[1];
+                    if (k == row && px > lo + 6 && px < hi - 6) { crash(Tr.t("OUCH")); return; }
+                    if (t[0] > FIELD_W + 40 || t[0] < -t[1] - 40) { t[0] = -999.0; l[4] = now + 3500 + rnd(2000); }
                 }
             }
         }
@@ -482,14 +512,14 @@ class MiniGameView extends WatchUi.View {
         RouteArt.make();
         var x0 = cx - FIELD_W / 2;
         var now = System.getTimer();
-        for (var s = LANES - 1; s >= 0; s--) {
+        for (var s = LANES - 1; s >= -1; s--) {          // (and one more above the top edge)
             var k = row + (STAND - s);
             if (k < 0) { continue; }
             drawLane(dc, laneAt(k), k, x0, TOP + s * RH, now);
         }
         // the rocks, trees and bushes over the ground, further ones first (a tall tree stands in
         // front of the lane behind it); yours with them, in its row
-        things(dc, x0, 0, STAND);
+        things(dc, x0, -1, STAND);
         // you, the trainer you chose, facing the way you last moved (flickering after a fall)
         if (kids != null && (!crashed || (now / 100) % 2 == 0)) {
             var py = TOP + STAND * RH;
@@ -519,11 +549,27 @@ class MiniGameView extends WatchUi.View {
         }
     }
 
+    // A log w long: its two ends (kids.png cells 33 and 35) and its middle (34) repeated between.
+    function log(dc, x, y, w) {
+        var base = y + 5 + 18 - 72;
+        var a = w / 2 < 48 ? w / 2 : 48;
+        dc.setClip(x, base, a, 72);
+        dc.drawBitmap(x - 33 * 48, base, kids);
+        for (var m = x + a; m < x + w - a; m += 48) {
+            var e = x + w - a - m < 48 ? x + w - a - m : 48;
+            dc.setClip(m, base, e, 72);
+            dc.drawBitmap(m - 34 * 48, base, kids);
+        }
+        dc.setClip(x + w - a, base, a, 72);
+        dc.drawBitmap(x + w - 48 - 35 * 48, base, kids);
+        dc.clearClip();
+    }
+
     // The train: its engine at the front (kids.png cell 30 facing left, 31 right), a carriage
     // (cell 32) per 36 pixels behind it, each standing on the rails.
     function train(dc, x, y, w, dir) {
         if (kids == null) { return; }
-        var base = y + RH - 1 - 72;
+        var base = y + RH - 6 - 72;                   // its wheels on the near rail
         var cars = w / 36;
         for (var i = 0; i < cars; i++) {
             var cx = x + i * 36;
@@ -575,14 +621,16 @@ class MiniGameView extends WatchUi.View {
             }
         } else if (l[0] == 2 || l[0] == 3) {
             // the water scrolls slowly (its ripples repeat every 24)
-            dc.drawBitmap(sx - ((now / 120) % 24) * l[1] - 24, y, RouteArt.water);
+            // the water flows with its logs (the same way, the same speed); its ripples repeat every 24
+            var flow = (((now.toLong() * l[2].toNumber() * l[1] / 1000) % 24).toNumber() + 24) % 24;   // (a Long: no overflow)
+            dc.drawBitmap(sx - 24 + flow, y, RouteArt.water);
             for (var i = 0; i < l[3].size(); i++) {
                 var it = l[3][i];
                 if (l[0] == 3) { RouteArt.lily(dc, x0 + it[0] + CW / 2, y, (it[0] / CW + k) % 3 == 0); continue; }
                 for (var w = -1; w <= 1; w++) {
                     var ix = x0 + it[0].toNumber() + w * PERIOD;
                     if (ix > x0 + FIELD_W + 40 || ix + it[1] < x0 - 40) { continue; }
-                    RouteArt.log(dc, ix, y, it[1]);
+                    log(dc, ix, y, it[1]);
                 }
             }
         } else {

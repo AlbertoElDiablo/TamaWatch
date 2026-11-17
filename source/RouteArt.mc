@@ -6,7 +6,7 @@ import Toybox.WatchUi;
 // lane), so the detail costs nothing per frame: GBA-era route grass with tufts and flowers, a
 // sandy path with edges and pebbles, rippling water (it scrolls), and a railway. Our own art.
 module RouteArt {
-    const SW = 320;                 // a strip's width in 280-pixel units (the field and both edges)
+    const SW = 344;                 // a strip's width in 280-pixel units (the field and both edges)
     const SH = 30;                  // a lane's height
     var f = 1.0;                    // real pixels per unit in the strips
     var grassA = null;
@@ -142,28 +142,6 @@ module RouteArt {
         }
     }
 
-    function log(dc, x, y, w) {
-        dc.setColor(0x000055, Graphics.COLOR_TRANSPARENT);
-        dc.fillRoundedRectangle(x + 2, y + 23, w - 2, 4, 2);           // its shadow in the water
-        dc.setColor(0x550000, Graphics.COLOR_TRANSPARENT);
-        dc.fillRoundedRectangle(x, y + 5, w, 20, 7);
-        dc.setColor(0xAA5500, Graphics.COLOR_TRANSPARENT);
-        dc.fillRoundedRectangle(x + 1, y + 6, w - 2, 17, 6);
-        dc.setColor(0xFFAA55, Graphics.COLOR_TRANSPARENT);
-        dc.fillRectangle(x + 6, y + 8, w - 16, 2);
-        dc.setColor(0x550000, Graphics.COLOR_TRANSPARENT);
-        for (var g = x + 12; g < x + w - 14; g += 13) {
-            dc.drawLine(g, y + 13, g + 6, y + 13);
-            dc.drawLine(g + 4, y + 18, g + 10, y + 18);
-        }
-        // the cut end
-        dc.setColor(0xFFAA55, Graphics.COLOR_TRANSPARENT);
-        dc.fillEllipse(x + w - 5, y + 15, 4, 8);
-        dc.setColor(0xAA5500, Graphics.COLOR_TRANSPARENT);
-        dc.drawEllipse(x + w - 5, y + 15, 2, 5);
-    }
-
-    // a train of n carriages heading dir (+1 right), its engine in front
     function signal(dc, x, y, on) {
         dc.setColor(0x555555, Graphics.COLOR_TRANSPARENT);
         dc.fillRectangle(x - 1, y + 4, 3, 22);

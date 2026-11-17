@@ -71,7 +71,7 @@ for cols in (COLA, COLB):
 # on its cell's floor. Here at 2x (the partner's zoom on the home screen), each in its own 48 x 72 cell after the two big ones: cell
 # 2 + character * 8 + view * 2 + frame (views 0 front, 1 back, 2 left, 3 right), centred, on the
 # cell's floor.
-img = Image.new("RGBA", (33 * 48, 72), (0, 0, 0, 0))
+img = Image.new("RGBA", (36 * 48, 72), (0, 0, 0, 0))
 for k, (half, col) in enumerate([(A, COLA), (B, COLB)]):
     top = 72 - len(half) * S
     for y, row in enumerate(half):
@@ -117,6 +117,13 @@ eng = eng.resize((42, round(eng.height * k)), Image.NEAREST)
 img.alpha_composite(eng, (30 * 48, 72 - eng.height))
 img.alpha_composite(eng.transpose(Image.FLIP_LEFT_RIGHT), (31 * 48, 72 - eng.height))
 img.alpha_composite(car, (32 * 48, 72 - car.height))
+
+# The river's log (tools/route_log.png) at 2x: cell 33 its left end, 34 a stretch of its middle (to
+# repeat), 35 its right end, each 48 wide, on the floor.
+lg = Image.open(os.path.join(os.path.dirname(os.path.abspath(__file__)), "route_log.png")).convert("RGBA")
+lg = lg.crop(lg.getbbox()); lg = lg.resize((lg.width * 2, lg.height * 2), Image.NEAREST)
+for c, x in ((33, 0), (34, lg.width // 2 - 24), (35, lg.width - 48)):
+    img.alpha_composite(lg.crop((x, 0, x + 48, lg.height)), (c * 48, 72 - lg.height))
 
 d = os.path.join(APP, "resources", "drawables", "kids")
 os.makedirs(d, exist_ok=True)
