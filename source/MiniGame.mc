@@ -322,7 +322,7 @@ class MiniGameView extends WatchUi.View {
                     who = 1 + rnd(Dex.COUNT);
                     if (Dex.rarity(who) != Dex.R_LEGEND) { break; }
                 }
-                items.add([(x % PERIOD).toFloat(), 30, who]);
+                items.add([(x % PERIOD).toFloat(), 40, who, null, null, 0, null]);   // (its big picture: see creature)
                 x += 120 + rnd(73);
             }
         }
@@ -535,7 +535,9 @@ class MiniGameView extends WatchUi.View {
 
     // The route (RouteArt.mc): ground strips painted once, the things on it drawn with shading,
     // your partner and the wild creatures as their thumbnails with a shadow under them.
+    var budget = 0;             // runs of the creatures' big pictures still to paint this frame
     function drawCross(dc, cx) {
+        budget = RouteArt.grassA == null ? 0 : 60;       // (none on the frame the ground is painted)
         RouteArt.make();
         var x0 = cx - FIELD_W / 2;
         var now = System.getTimer();
@@ -573,6 +575,69 @@ class MiniGameView extends WatchUi.View {
             dc.setColor(0x000055, Graphics.COLOR_TRANSPARENT);
             centerText(dc, cx - 105, 52, 210, 22, Graphics.FONT_XTINY, Tr.t("START hop, UP/DOWN move"));
         }
+    }
+
+    // A wild creature's big picture (item [x, w, who, picture, runs left to paint, next run,
+    // [width, height, left, top, scale in eighths]]): its glance runs (make_glance_thumbs.py:
+    // colour << 18 | y << 12 | x << 6 | length, at its natural size) enlarged to about the
+    // trainer's height (48, at most 2x like the trainer), cropped to its outline, facing the way
+    // it runs (they face left: flipped when it heads right). Painted a few dozen runs a frame
+    // (all at once trips the watchdog); until it is done the thumbnail stands in.
+    function creature(it, flip) {
+        if (budget <= 0) { return; }
+        if (it[3] == null) {
+            var runs = (WatchUi.loadResource(SpriteIndex.data(it[2])) as Dictionary)["g"];
+            var pal = [Graphics.COLOR_TRANSPARENT];
+            var seen = {};
+            var l = 63; var t = 63; var r = 0; var b = 0;
+            for (var i = 0; i < runs.size(); i++) {
+                var v = runs[i];
+                var c = (v >> 18) & 63;
+                if (!seen.hasKey(c)) { seen.put(c, true); pal.add(((c >> 4) & 3) * 0x550000 + ((c >> 2) & 3) * 0x5500 + (c & 3) * 0x55); }
+                var ry = (v >> 12) & 63;
+                var rx = (v >> 6) & 63;
+                if (rx < l) { l = rx; }
+                if (rx + (v & 63) > r) { r = rx + (v & 63); }
+                if (ry < t) { t = ry; }
+                if (ry + 1 > b) { b = ry + 1; }
+            }
+            var big = (r - l > b - t ? r - l : b - t);
+            var k = big > 0 ? 48 * 8 / big : 16;
+            if (k > 16) { k = 16; }
+            var w = (r - l) * k / 8;
+            var h = (b - t) * k / 8;
+            var o = {:width => RouteArt.R(w) + 1, :height => RouteArt.R(h) + 1, :palette => pal};
+            it[3] = (Graphics has :createBufferedBitmap) ? Graphics.createBufferedBitmap(o).get() : new Graphics.BufferedBitmap(o);
+            var bd = it[3].getDc();
+            bd.setColor(Graphics.COLOR_TRANSPARENT, Graphics.COLOR_TRANSPARENT);
+            bd.clear();
+            it[4] = runs;
+            it[5] = 0;
+            it[6] = [w, h, flip ? 40 - r : l, t, k];
+            budget -= 40;
+            return;
+        }
+        var runs = it[4];
+        var m = it[6];
+        var k = m[4];
+        var dc = it[3].getDc();
+        var i = it[5];
+        var end = i + budget < runs.size() ? i + budget : runs.size();
+        budget -= end - i;
+        for (; i < end; i++) {
+            var v = runs[i];
+            var c = (v >> 18) & 63;
+            var ry = ((v >> 12) & 63) - m[3];
+            var rx = (v >> 6) & 63;
+            var n = v & 63;
+            if (flip) { rx = 40 - rx - n; }
+            rx -= m[2];
+            var x0 = rx * k / 8;
+            var y0 = ry * k / 8;
+            RouteArt.rect(dc, ((c >> 4) & 3) * 0x550000 + ((c >> 2) & 3) * 0x5500 + (c & 3) * 0x55, x0, y0, (rx + n) * k / 8 - x0, (ry + 1) * k / 8 - y0);
+        }
+        it[5] = i;
+        if (i >= runs.size()) { it[4] = null; }          // done
     }
 
     // A log w long: its two ends (kids.png cells 33 and 35) and its middle (34) repeated between.
@@ -638,10 +703,14 @@ class MiniGameView extends WatchUi.View {
                     var ix = x0 + it[0].toNumber() + w * PERIOD;
                     if (ix > x0 + FIELD_W + 40 || ix + it[1] < x0 - 40) { continue; }
                     dc.setColor(0xAA5500, Graphics.COLOR_TRANSPARENT);
-                    dc.fillEllipse(ix + 15, y + RH - 4, 11, 3);
-                    dc.setClip(ix - 4, y - 6, 38, RH + 6);
-                    Thumbs.draw(dc, it[2], ix - 4, y + RH / 2 - 23, false);
-                    dc.clearClip();
+                    dc.fillEllipse(ix + 20, y + RH - 4, 14, 3);
+                    if (it[4] != null || it[3] == null) { creature(it, l[1] > 0); }   // (painted a little a frame)
+                    if (it[4] == null && it[3] != null) { dc.drawBitmap(ix + 20 - it[6][0] / 2, y + RH - 1 - it[6][1], it[3]); }
+                    else {
+                        dc.setClip(ix - 4, y - 6, 48, RH + 6);
+                        Thumbs.draw(dc, it[2], ix + 1, y + RH / 2 - 23, false);
+                        dc.clearClip();
+                    }
                 }
             }
         } else if (l[0] == 2 || l[0] == 3) {
