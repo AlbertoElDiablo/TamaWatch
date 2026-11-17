@@ -255,7 +255,7 @@ class MiniGameView extends WatchUi.View {
         if (kind == 0) {
             if (k > 1) {
                 for (var c = 0; c < COLS; c++) {
-                    if (c != pathCol && c != prevCol && rnd(100) < trees) { items.add([c * CW, CW, rnd(3) == 0 ? 1 : 0]); }
+                    if (c != pathCol && c != prevCol && rnd(100) < trees) { items.add([c * CW, CW, rnd(12)]); }
                 }
             }
             speed = 0;
@@ -287,7 +287,7 @@ class MiniGameView extends WatchUi.View {
         lanes.remove(k - 12);
     }
 
-    // a tree (or boulder) in the grass at column c?
+    // a rock, tree or bush in the grass at column c?
     function bush(l, c) {
         if (l[0] != 0) { return false; }
         for (var i = 0; i < l[3].size(); i++) { if (l[3][i][0] == c * CW) { return true; } }
@@ -487,6 +487,9 @@ class MiniGameView extends WatchUi.View {
             if (k < 0) { continue; }
             drawLane(dc, laneAt(k), k, x0, TOP + s * RH, now);
         }
+        // the rocks, trees and bushes over the ground, further ones first (a tall tree stands in
+        // front of the lane behind it); yours with them, in its row
+        things(dc, x0, 0, STAND);
         // you, the trainer you chose, facing the way you last moved (flickering after a fall)
         if (kids != null && (!crashed || (now / 100) % 2 == 0)) {
             var py = TOP + STAND * RH;
@@ -499,6 +502,7 @@ class MiniGameView extends WatchUi.View {
             dc.drawBitmap(ppx - 20 - (cell * 48 + 4), top - 22, kids);
             dc.clearClip();
         }
+        things(dc, x0, STAND + 1, LANES - 1);
         // the distance, in a box at the top; how to play until the first hop
         dc.setColor(0xFFFFFF, Graphics.COLOR_TRANSPARENT);
         dc.fillRoundedRectangle(cx - 28, 16, 56, 30, 8);
@@ -515,14 +519,46 @@ class MiniGameView extends WatchUi.View {
         }
     }
 
+    // The train: its engine at the front (kids.png cell 30 facing left, 31 right), a carriage
+    // (cell 32) per 36 pixels behind it, each standing on the rails.
+    function train(dc, x, y, w, dir) {
+        if (kids == null) { return; }
+        var base = y + RH - 1 - 72;
+        var cars = w / 36;
+        for (var i = 0; i < cars; i++) {
+            var cx = x + i * 36;
+            var cell = 32;
+            var cw = 36;
+            if (dir < 0 && i == 0) { cell = 30; cw = 42; cx -= 6; }
+            else if (dir > 0 && i == cars - 1) { cell = 31; cw = 42; }
+            dc.setClip(cx, base, cw, 72);
+            dc.drawBitmap(cx - cell * 48, base, kids);
+        }
+        dc.clearClip();
+    }
+
+    // The grass lanes' rocks, trees and bushes (kids.png cells 18-29, at 2x) in rows s0..s1.
+    function things(dc, x0, s0, s1) {
+        if (kids == null) { return; }
+        for (var s = s0; s <= s1; s++) {
+            var k = row + (STAND - s);
+            if (k < 0) { continue; }
+            var l = laneAt(k);
+            if (l[0] != 0) { continue; }
+            var base = TOP + s * RH + RH - 2 - 72;
+            for (var i = 0; i < l[3].size(); i++) {
+                var tx = x0 + l[3][i][0] + CW / 2;
+                dc.setClip(tx - 24, base, 48, 72);
+                dc.drawBitmap(tx - 24 - (18 + l[3][i][2]) * 48, base, kids);
+            }
+        }
+        dc.clearClip();
+    }
+
     function drawLane(dc, l, k, x0, y, now) {
         var sx = x0 - (RouteArt.SW - FIELD_W) / 2;
         if (l[0] == 0) {
             dc.drawBitmap(sx, y, k % 2 == 0 ? RouteArt.grassA : RouteArt.grassB);
-            for (var i = 0; i < l[3].size(); i++) {
-                var tx = x0 + l[3][i][0] + CW / 2;
-                if (l[3][i][2] == 1) { RouteArt.boulder(dc, tx, y); } else { RouteArt.tree(dc, tx, y); }
-            }
         } else if (l[0] == 1) {
             dc.drawBitmap(sx, y, RouteArt.path);
             for (var i = 0; i < l[3].size(); i++) {
@@ -553,7 +589,7 @@ class MiniGameView extends WatchUi.View {
             dc.drawBitmap(sx, y, RouteArt.rail);
             var t = l[3][0];
             RouteArt.signal(dc, x0 - 14, y, t[0] < -900 && now >= l[4] - 1500 && (now / 200) % 2 == 0);
-            if (t[0] > -900) { RouteArt.train(dc, x0 + t[0].toNumber(), y, t[1], l[1]); }
+            if (t[0] > -900) { train(dc, x0 + t[0].toNumber(), y, t[1], l[1]); }
         }
     }
 }

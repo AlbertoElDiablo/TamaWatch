@@ -71,7 +71,7 @@ for cols in (COLA, COLB):
 # on its cell's floor. Here at 2x (the partner's zoom on the home screen), each in its own 48 x 72 cell after the two big ones: cell
 # 2 + character * 8 + view * 2 + frame (views 0 front, 1 back, 2 left, 3 right), centred, on the
 # cell's floor.
-img = Image.new("RGBA", (18 * 48, 72), (0, 0, 0, 0))
+img = Image.new("RGBA", (33 * 48, 72), (0, 0, 0, 0))
 for k, (half, col) in enumerate([(A, COLA), (B, COLB)]):
     top = 72 - len(half) * S
     for y, row in enumerate(half):
@@ -93,6 +93,30 @@ for k in range(2):
         fr = fr.resize((round(fr.width * wide) * 2, fr.height * 2), Image.NEAREST)
         cell = 2 + k * 8 + (i % 4) * 2 + i // 4
         img.alpha_composite(fr, (cell * 48 + (48 - fr.width) // 2, 72 - fr.height))
+
+# Route Crossing's grass lanes: tools/route_objects.png, 12 things in 32 x 28 cells, each standing on
+# its cell's floor (4 rocks, 4 trees, 4 bushes). Here at 2x like the trainers (a wide one a little
+# less, to fit its 48-pixel cell), in cells 18-29, centred, on the cell's floor.
+obj = Image.open(os.path.join(os.path.dirname(os.path.abspath(__file__)), "route_objects.png")).convert("RGBA")
+for i in range(12):
+    fr = obj.crop((i * 32, 0, i * 32 + 32, 28))
+    fr = fr.crop(fr.getbbox())
+    k = min(2.0, 46.0 / fr.width)
+    fr = fr.resize((round(fr.width * k), round(fr.height * k)), Image.NEAREST)
+    img.alpha_composite(fr, ((18 + i) * 48 + (48 - fr.width) // 2, 72 - fr.height))
+
+# The train (tools/route_train.png: the engine, nose to the left, then a carriage), each stretched
+# so a carriage spans 36 pixels: cell 30 the engine facing left, 31 facing right, 32 the carriage,
+# each against its cell's left edge, on the floor.
+tr = Image.open(os.path.join(os.path.dirname(os.path.abspath(__file__)), "route_train.png")).convert("RGBA")
+car = tr.crop((32, 0, 64, 24)); car = car.crop(car.getbbox())
+eng = tr.crop((0, 0, 32, 24)); eng = eng.crop(eng.getbbox())
+k = 36.0 / car.width
+car = car.resize((36, round(car.height * k)), Image.NEAREST)
+eng = eng.resize((42, round(eng.height * k)), Image.NEAREST)
+img.alpha_composite(eng, (30 * 48, 72 - eng.height))
+img.alpha_composite(eng.transpose(Image.FLIP_LEFT_RIGHT), (31 * 48, 72 - eng.height))
+img.alpha_composite(car, (32 * 48, 72 - car.height))
 
 d = os.path.join(APP, "resources", "drawables", "kids")
 os.makedirs(d, exist_ok=True)

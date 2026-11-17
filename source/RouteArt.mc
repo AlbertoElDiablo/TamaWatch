@@ -122,40 +122,6 @@ module RouteArt {
 
     // ---------- things on the lanes (drawn each frame, through Sdc) ----------
 
-    function tree(dc, x, y) {
-        dc.setColor(0x005500, Graphics.COLOR_TRANSPARENT);
-        dc.fillEllipse(x + 2, y + 26, 12, 3);                     // its shadow
-        dc.setColor(0x550000, Graphics.COLOR_TRANSPARENT);
-        dc.fillRectangle(x - 3, y + 17, 7, 10);
-        dc.setColor(0xAA5500, Graphics.COLOR_TRANSPARENT);
-        dc.fillRectangle(x - 2, y + 18, 2, 8);
-        dc.setColor(0x000000, Graphics.COLOR_TRANSPARENT);
-        dc.fillCircle(x, y + 10, 14);
-        dc.setColor(0x005500, Graphics.COLOR_TRANSPARENT);
-        dc.fillCircle(x, y + 10, 13);
-        dc.setColor(0x00AA00, Graphics.COLOR_TRANSPARENT);
-        dc.fillCircle(x - 1, y + 8, 10);
-        dc.setColor(0x55FF55, Graphics.COLOR_TRANSPARENT);
-        dc.fillCircle(x - 4, y + 5, 4);
-        dc.setColor(0x005500, Graphics.COLOR_TRANSPARENT);
-        dc.fillCircle(x + 5, y + 13, 3);
-    }
-
-    function boulder(dc, x, y) {
-        dc.setColor(0x005500, Graphics.COLOR_TRANSPARENT);
-        dc.fillEllipse(x + 2, y + 24, 12, 3);
-        dc.setColor(0x000000, Graphics.COLOR_TRANSPARENT);
-        dc.fillCircle(x, y + 15, 12);
-        dc.setColor(0x555555, Graphics.COLOR_TRANSPARENT);
-        dc.fillCircle(x, y + 15, 11);
-        dc.setColor(0xAAAAAA, Graphics.COLOR_TRANSPARENT);
-        dc.fillCircle(x - 2, y + 13, 8);
-        dc.setColor(0xFFFFFF, Graphics.COLOR_TRANSPARENT);
-        dc.fillCircle(x - 5, y + 9, 2);
-        dc.setColor(0x555555, Graphics.COLOR_TRANSPARENT);
-        dc.drawLine(x + 2, y + 10, x + 5, y + 17);
-    }
-
     function lily(dc, x, y, flower) {
         dc.setColor(0x005500, Graphics.COLOR_TRANSPARENT);
         dc.fillCircle(x, y + 15, 13);
@@ -198,36 +164,6 @@ module RouteArt {
     }
 
     // a train of n carriages heading dir (+1 right), its engine in front
-    function train(dc, x, y, w, dir) {
-        var cars = w / 36;
-        for (var i = 0; i < cars; i++) {
-            var cx = x + i * 36;
-            var front = (dir > 0 && i == cars - 1) || (dir < 0 && i == 0);
-            dc.setColor(0x000000, Graphics.COLOR_TRANSPARENT);
-            dc.fillRoundedRectangle(cx + 1, y + 2, 34, 25, 4);
-            dc.setColor(front ? 0xFF0000 : 0xAA0000, Graphics.COLOR_TRANSPARENT);
-            dc.fillRoundedRectangle(cx + 2, y + 3, 32, 22, 3);
-            dc.setColor(0x550000, Graphics.COLOR_TRANSPARENT);
-            dc.fillRectangle(cx + 2, y + 3, 32, 4);
-            dc.setColor(0xFFFFFF, Graphics.COLOR_TRANSPARENT);
-            dc.fillRectangle(cx + 2, y + 18, 32, 2);
-            if (front) {
-                dc.setColor(0x55AAFF, Graphics.COLOR_TRANSPARENT);
-                dc.fillRectangle(dir > 0 ? cx + 20 : cx + 5, y + 8, 10, 8);
-                dc.setColor(0xFFFF00, Graphics.COLOR_TRANSPARENT);
-                dc.fillCircle(dir > 0 ? cx + 32 : cx + 4, y + 21, 2);
-            } else {
-                dc.setColor(0x55AAFF, Graphics.COLOR_TRANSPARENT);
-                dc.fillRectangle(cx + 6, y + 8, 9, 7);
-                dc.fillRectangle(cx + 21, y + 8, 9, 7);
-            }
-            dc.setColor(0x000000, Graphics.COLOR_TRANSPARENT);
-            dc.fillCircle(cx + 9, y + 26, 3);
-            dc.fillCircle(cx + 27, y + 26, 3);
-        }
-    }
-
-    // the railway's signal: a post and a lamp, flashing red before a train
     function signal(dc, x, y, on) {
         dc.setColor(0x555555, Graphics.COLOR_TRANSPARENT);
         dc.fillRectangle(x - 1, y + 4, 3, 22);
