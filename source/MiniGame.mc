@@ -494,9 +494,9 @@ class MiniGameView extends WatchUi.View {
             dc.setColor(0x000000, Graphics.COLOR_TRANSPARENT);
             dc.fillEllipse(ppx, py + RH - 4, 10, 3);
             var cell = 2 + (model.trGender == 1 ? 8 : 0) + face * 2 + steps % 2;
-            var top = py + RH - 3 - 26;                  // (up to 20 x 26 at 1x, on its cell's floor)
-            dc.setClip(ppx - 10, top, 20, 26);
-            dc.drawBitmap(ppx - 10 - (cell * 48 + 14), top - 46, kids);
+            var top = py + RH - 3 - 50;                  // (up to 40 x 50 at 2x, on its cell's floor)
+            dc.setClip(ppx - 20, top, 40, 50);
+            dc.drawBitmap(ppx - 20 - (cell * 48 + 4), top - 22, kids);
             dc.clearClip();
         }
         // the distance, in a box at the top; how to play until the first hop
