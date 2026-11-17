@@ -66,35 +66,14 @@ COLB = dict(BASE, c=(255, 85, 255), C=(170, 0, 170), B=(255, 85, 170), H=(85, 0,
 for cols in (COLA, COLB):
     cols["K"] = (0, 0, 0)
 
-# Route Crossing's walking trainer: each character from the front, back, left and right, 16 x 21
-# at 2x, each in its own 48 x 72 cell after the two big ones (cell 2 + character * 4 + view;
-# views 0 front, 1 back, 2 left, 3 right), standing on the cell's floor, centred.
-BACK_A = [
-    ".....KKK", "....KCCC", "...KCCCC", "...KCCCC", "..KCCCCC", "..KBBBBB", ".KHHHHHH", ".KHHHHHH",
-    "..KHHHHH", "...KSSSS", "...KJJJJ", "..KJJJJJ", ".KSKJJJJ", ".KSSJJJJ", "..KKJJJJ", "...KPPPP",
-    "...KPPPP", "...KPPPK", "...KPPPK", "...KKKK.", "...KKKK.",
-]
-BACK_B = [
-    ".....KKK", "....KCCC", "...KCCCC", "...KCCCC", "..KCCCCC", "..KBBBBB", ".KHHHHHH", ".KHHHHHH",
-    ".KHHHHHH", ".KHHHHHH", ".KHHJJJJ", ".KHHJJJJ", ".KSKJJJJ", ".KSSJJJJ", "..KKJJJJ", "...KQQQQ",
-    "..KQQQQQ", "...KSSSK", "...KSSSK", "...KLLL.", "...KKKK.",
-]
-SIDE_A = [  # facing left, the whole 16 columns
-    "......KKKK......", ".....KCCCCK.....", "....KCCCCCCK....", "....KCCCCCCK....", "..KcccBBBBBK....",
-    "...KKKBBBBBK....", "....KSSHHHHK....", "...KSSSKHHHK....", "...KSSSSSHHK....", "....KMSSSSK.....",
-    ".....KJJJJK.....", "....KJJTJJK.....", "....KJSSJJK.....", "....KJSSJJK.....", ".....KJJJJK.....",
-    ".....KPPPPK.....", ".....KPPPPK.....", ".....KPPpPK.....", "....KPPK.KPK....", "....KKKK.KKK....",
-    "................",
-]
-SIDE_B = [
-    "......KKKK......", ".....KCCCCK.....", "....KCCCCCCK....", "....KCCCCCCK....", "..KcccBBBBBK....",
-    "...KKKBBBBBHK...", "....KSSHHHHHK...", "...KSSSKHHHHK...", "...KSSSSSHHHK...", "....KMSSSSHHK...",
-    ".....KJJJJHHK...", "....KJJJJJK.....", "....KJSSJJK.....", "....KJSSJJK.....", ".....KJJJJK.....",
-    "....KQQQQQQK....", "....KQQqQQQK....", ".....KSSSSK.....", "....KSSK.KSK....", "....KLLK.KLK....",
-    "................",
-]
+# Route Crossing's walking trainers (tools/walkers.py): each character from the front, back, left
+# and right, two walking frames each, 16 x 24 at 2x, each in its own 48 x 72 cell after the two big
+# ones: cell 2 + character * 8 + view * 2 + frame (views 0 front, 1 back, 2 left, 3 right),
+# standing on the cell's floor, centred.
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+import walkers
 
-img = Image.new("RGBA", (10 * 48, 72), (0, 0, 0, 0))
+img = Image.new("RGBA", (18 * 48, 72), (0, 0, 0, 0))
 for k, (half, col) in enumerate([(A, COLA), (B, COLB)]):
     top = 72 - len(half) * S
     for y, row in enumerate(half):
@@ -105,24 +84,18 @@ for k, (half, col) in enumerate([(A, COLA), (B, COLB)]):
             for dy in range(S):
                 for dx in range(S):
                     img.putpixel((k * 48 + x * S + dx, top + y * S + dy), col[ch] + (255,))
-def put(cell, rows, col, mirror_half):
-    """A 16 x 21 view at 2x, centred on the floor of its 48 x 72 cell."""
-    x0, y0 = cell * 48 + 8, 72 - 42
-    for y, row in enumerate(rows):
-        full = row + row[::-1] if mirror_half else row
-        for x, ch in enumerate(full):
-            if ch == ".":
-                continue
-            for dy in range(2):
-                for dx in range(2):
-                    img.putpixel((x0 + x * 2 + dx, y0 + y * 2 + dy), col[ch] + (255,))
-
-for k, (front, back, side, col) in enumerate([(A, BACK_A, SIDE_A, COLA), (B, BACK_B, SIDE_B, COLB)]):
-    base = 2 + k * 4
-    put(base + 0, front, col, True)
-    put(base + 1, back, col, True)
-    put(base + 2, side, col, False)
-    put(base + 3, [r[::-1] for r in side], col, False)        # right: the left view mirrored
+for k, who in enumerate(("boy", "girl")):
+    col = walkers.COLOURS[who]
+    for v, view in enumerate(("front", "back", "left", "right")):
+        for f, rows in enumerate(walkers.WALKERS[who][view]):
+            x0, y0 = (2 + k * 8 + v * 2 + f) * 48 + 8, 72 - 48
+            for y, row in enumerate(rows):
+                for x, ch in enumerate(row):
+                    if ch == ".":
+                        continue
+                    for dy in range(2):
+                        for dx in range(2):
+                            img.putpixel((x0 + x * 2 + dx, y0 + y * 2 + dy), col[ch] + (255,))
 
 d = os.path.join(APP, "resources", "drawables", "kids")
 os.makedirs(d, exist_ok=True)

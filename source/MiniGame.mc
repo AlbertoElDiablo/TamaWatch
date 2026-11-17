@@ -54,6 +54,7 @@ class MiniGameView extends WatchUi.View {
     var px = 90.0;        // where it stands across the field (0..FIELD_W)
     var crashed = false;
     var face = 1;         // which way the trainer faces: 0 front, 1 back (up the route), 2 left, 3 right
+    var steps = 0;        // moves made: the walking frame alternates with each
     var kids = null;      // the trainers' picture (its walking views: make_trainer_art.py)
     var nextOrbAt = 0;
     var shieldSide = -1;
@@ -359,6 +360,7 @@ class MiniGameView extends WatchUi.View {
         if (next[0] == 0 && bush(next, col)) { return; }
         row += 1;
         face = 1;
+        steps += 1;
         lastHop = System.getTimer();
         if (next[0] != 2) { px = (col * CW + CW / 2).toFloat(); }   // off the logs: back on the grid
         if (row > score) { score = row; }
@@ -368,6 +370,7 @@ class MiniGameView extends WatchUi.View {
         if (done || crashed) { return; }
         var l = laneAt(row);
         face = d < 0 ? 2 : 3;
+        steps += 1;
         var nx = px + d * CW;
         if (nx < CW / 2 - 1 || nx > FIELD_W - CW / 2 + 1) { return; }
         if (l[0] == 0 && bush(l, (nx / CW).toNumber())) { return; }
@@ -490,10 +493,10 @@ class MiniGameView extends WatchUi.View {
             var ppx = x0 + px.toNumber();
             dc.setColor(0x000000, Graphics.COLOR_TRANSPARENT);
             dc.fillEllipse(ppx, py + RH - 4, 10, 3);
-            var cell = 2 + (model.trGender == 1 ? 4 : 0) + face;
-            var top = py + RH - 2 - 42;
-            dc.setClip(ppx - 16, top, 32, 42);
-            dc.drawBitmap(ppx - 16 - (cell * 48 + 8), top - 30, kids);
+            var cell = 2 + (model.trGender == 1 ? 8 : 0) + face * 2 + steps % 2;
+            var top = py + RH - 2 - 48;
+            dc.setClip(ppx - 16, top, 32, 48);
+            dc.drawBitmap(ppx - 16 - (cell * 48 + 8), top - 24, kids);
             dc.clearClip();
         }
         // the distance, in a box at the top; how to play until the first hop
