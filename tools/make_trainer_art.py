@@ -68,7 +68,7 @@ for cols in (COLA, COLB):
 
 # Route Crossing's walking trainers: tools/walkers.png, two rows (the boy, the girl) of 8 frames in
 # 20 x 28 cells (front, back, left, right standing, then the same walking), each figure standing
-# on its cell's floor. Here at 2x, each in its own 48 x 72 cell after the two big ones: cell
+# on its cell's floor. Here at 1x (about a creature's height), each in its own 48 x 72 cell after the two big ones: cell
 # 2 + character * 8 + view * 2 + frame (views 0 front, 1 back, 2 left, 3 right), centred, on the
 # cell's floor.
 img = Image.new("RGBA", (18 * 48, 72), (0, 0, 0, 0))
@@ -87,7 +87,6 @@ for k in range(2):
     for i in range(8):
         fr = walk.crop((i * 20, k * 28, i * 20 + 20, k * 28 + 28))
         fr = fr.crop(fr.getbbox())
-        fr = fr.resize((fr.width * 2, fr.height * 2), Image.NEAREST)
         cell = 2 + k * 8 + (i % 4) * 2 + i // 4
         img.alpha_composite(fr, (cell * 48 + (48 - fr.width) // 2, 72 - fr.height))
 
