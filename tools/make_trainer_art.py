@@ -66,13 +66,11 @@ COLB = dict(BASE, c=(255, 85, 255), C=(170, 0, 170), B=(255, 85, 170), H=(85, 0,
 for cols in (COLA, COLB):
     cols["K"] = (0, 0, 0)
 
-# Route Crossing's walking trainers (tools/walkers.py): each character from the front, back, left
-# and right, two walking frames each, 16 x 24 at 2x, each in its own 48 x 72 cell after the two big
-# ones: cell 2 + character * 8 + view * 2 + frame (views 0 front, 1 back, 2 left, 3 right),
-# standing on the cell's floor, centred.
-sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-import walkers
-
+# Route Crossing's walking trainers: tools/walkers.png, two rows (the boy, the girl) of 8 frames in
+# 20 x 28 cells (front, back, left, right standing, then the same walking), each figure standing
+# on its cell's floor. Here at 2x, each in its own 48 x 72 cell after the two big ones: cell
+# 2 + character * 8 + view * 2 + frame (views 0 front, 1 back, 2 left, 3 right), centred, on the
+# cell's floor.
 img = Image.new("RGBA", (18 * 48, 72), (0, 0, 0, 0))
 for k, (half, col) in enumerate([(A, COLA), (B, COLB)]):
     top = 72 - len(half) * S
@@ -84,18 +82,14 @@ for k, (half, col) in enumerate([(A, COLA), (B, COLB)]):
             for dy in range(S):
                 for dx in range(S):
                     img.putpixel((k * 48 + x * S + dx, top + y * S + dy), col[ch] + (255,))
-for k, who in enumerate(("boy", "girl")):
-    col = walkers.COLOURS[who]
-    for v, view in enumerate(("front", "back", "left", "right")):
-        for f, rows in enumerate(walkers.WALKERS[who][view]):
-            x0, y0 = (2 + k * 8 + v * 2 + f) * 48 + 8, 72 - 48
-            for y, row in enumerate(rows):
-                for x, ch in enumerate(row):
-                    if ch == ".":
-                        continue
-                    for dy in range(2):
-                        for dx in range(2):
-                            img.putpixel((x0 + x * 2 + dx, y0 + y * 2 + dy), col[ch] + (255,))
+walk = Image.open(os.path.join(os.path.dirname(os.path.abspath(__file__)), "walkers.png")).convert("RGBA")
+for k in range(2):
+    for i in range(8):
+        fr = walk.crop((i * 20, k * 28, i * 20 + 20, k * 28 + 28))
+        fr = fr.crop(fr.getbbox())
+        fr = fr.resize((fr.width * 2, fr.height * 2), Image.NEAREST)
+        cell = 2 + k * 8 + (i % 4) * 2 + i // 4
+        img.alpha_composite(fr, (cell * 48 + (48 - fr.width) // 2, 72 - fr.height))
 
 d = os.path.join(APP, "resources", "drawables", "kids")
 os.makedirs(d, exist_ok=True)
