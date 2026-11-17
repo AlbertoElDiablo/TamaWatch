@@ -1449,7 +1449,7 @@ class PetModel {
 
     // ---------- training games (TamaPoke's trainStrength / trainSpeed / playResult) ----------
 
-    // Training bag: 12 points = 1 STRENGTH, at most +3 a session (the first 3 games a day), under the IV ceiling.
+    // Training bag: 12 points can train STRENGTH (Extra.gameGain: now and then 1, at most 2 a day from games), under the IV ceiling.
     function trainStrength(hits) {
         if (!canAct()) { return 0; }
         var gain = Extra.gameGain(min(hits / 12, 3));
@@ -1467,7 +1467,7 @@ class PetModel {
         return gain;
     }
 
-    // Dodge run: 2 points = 1 SPEED, at most +18 a session.
+    // Dodge run: 8 points can train SPEED (Extra.gameGain).
     function trainSpeed(hits) {
         if (!canAct()) { return 0; }
         var gain = Extra.gameGain(min(hits / 8, 3));
@@ -1484,7 +1484,7 @@ class PetModel {
         return gain;
     }
 
-    // Brace and block: 5 points = 3 DEFENSE (at most +18) and joy: 5, plus 2 a point (max +35).
+    // Route Crossing: 6 points can train DEFENSE (Extra.gameGain), and joy.
     function playResult(score) {
         if (!canAct()) { return 0; }
         var gain = Extra.gameGain(min(score / 6, 3));

@@ -1,11 +1,12 @@
 import Toybox.Application.Storage;
 import Toybox.Lang;
+import Toybox.Math;
 import Toybox.Time;
 
 // Newer game state, kept apart from PetModel (at Connect IQ's member limit), saved under "ext":
 //   [0] when each trainer (0-12) was last beaten (UTC): a rematch is due 2 days later
 //   [1] when the rival next shows up (UTC, 0: not set yet)   [2] rival battles won
-//   [3] the day [4] counts training games on   [4] training games that trained today   [5] unused
+//   [3] the day [4] counts on   [4] stat points training games gave today   [5] unused
 module Extra {
     const REMATCH_SEC = 172800;         // 2 days
     var d = null;
@@ -40,19 +41,22 @@ module Extra {
 
     // ---------- training games: only the first 3 a day train a stat ----------
 
+    // Training games train slowly, slower than workouts: a game good enough to train (g > 0)
+    // gives 1 point one time in three, at most GAME_DAY points a day from all of them.
+    const GAME_DAY = 2;
     function gameGain(g) {
         load();
         var day = Time.now().value() / 86400;
         if (d[3] != day) { d[3] = day; d[4] = 0; }
-        if (d[4] >= 3 || g <= 0) { return 0; }               // (a game that trained nothing doesn't count)
+        if (d[4] >= GAME_DAY || g <= 0 || Math.rand().abs() % 3 != 0) { return 0; }
         d[4] += 1;
         save();
-        return g;
+        return 1;
     }
 
     function gamesLeft() {
         load();
-        return d[3] == Time.now().value() / 86400 ? (d[4] >= 3 ? 0 : 3 - d[4]) : 3;
+        return d[3] == Time.now().value() / 86400 ? (d[4] >= GAME_DAY ? 0 : GAME_DAY - d[4]) : GAME_DAY;
     }
 
     // ---------- the rival ----------

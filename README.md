@@ -60,7 +60,7 @@ watch models.
   beats a foe earns its EXP. Beaten gym leaders come back stronger after two days, and a rival,
   KAI, turns up every few days with a team that grows with you.
 - **Slow and steady training.** Stats grow like your own fitness: a workout adds 1 point plus 1 per
-  half hour (at most 4), a training game up to 3 (the first 3 a day). Great care until it evolves
+  half hour (at most 4), a good training game now and then 1 (at most 2 a day from games). Great care until it evolves
   adds 3 to each stat.
 - **Route Crossing.** The defence training game: hop your trainer as far as you can across grass,
   paths full of wild creatures, rivers and railways. It gets faster the further you go and only
