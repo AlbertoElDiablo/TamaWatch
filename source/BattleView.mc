@@ -583,7 +583,12 @@ class BattleView extends WatchUi.View {
         if (lg.hurtSelf) { msgs.add(actor.name + Tr.t(" hurt itself in confusion!")); return; }
         if (lg.charged) { msgs.add(actor.name + Tr.t(" is charging up!")); return; }
         msgs.add(actor.name + Tr.t(" used ") + Moves.name(lg.move) + "!");
-        if (lg.missed) { msgs.add(Tr.t("But it missed!")); return; }
+        if (lg.missed) {
+            // poor care: say which need made it miss
+            var why = ["But it missed!", "Missed because it's hungry!", "Missed because it wants a bath!", "Missed because it wants to train!"];
+            msgs.add(Tr.t(why[lg.missWhy >= 0 && lg.missWhy <= 3 ? lg.missWhy : 0]));
+            return;
+        }
         if (lg.immune) { msgs.add(Tr.t("It had no effect...")); return; }
         if (lg.healed) { msgs.add(actor.name + Tr.t(" regained health!")); return; }
         if (lg.stageMask != 0) {
@@ -627,13 +632,18 @@ class BattleView extends WatchUi.View {
             for (var i = 0; i < squad.size(); i++) { if (squad[i].dex == model.dex && squad[i].level == model.level()) { inSquad = true; } }
             if (!inSquad) { return; }
         }
+        // FireRed's EXP: each creature beaten pays its species' base yield x its level / 7
+        // (x1.5 for a trainer's, which battleExp adds); summed over the whole other side
         var kind = lobby != null ? 2 : (trainer >= 0 ? 1 : 0);
-        var lv = 0;
-        if (kind == 0) { lv = foe.level; }
-        else if (kind == 1) { for (var i = 0; i < team.size(); i++) { lv += team[i][1]; } }
-        else { for (var i = 0; i < foeSquad.size(); i++) { lv += foeSquad[i].level; } }
+        var pts = 0;
+        if (kind == 0) { pts = yieldOf(foe) * foe.level / 7; }
+        else if (kind == 1) {
+            for (var i = 0; i < team.size(); i++) { pts += baseYield(team[i][0]) * team[i][1] / 7; }
+        } else {
+            for (var i = 0; i < foeSquad.size(); i++) { pts += yieldOf(foeSquad[i]) * foeSquad[i].level / 7; }
+        }
         var before = model.level();
-        var n = model.battleExp(kind, lv, didWin, hard);
+        var n = model.battleExp(kind, pts, didWin, hard);
         expGained = n;
         levelUp = model.level() > before;
         if (n > 0) {
@@ -643,6 +653,14 @@ class BattleView extends WatchUi.View {
     }
 
     // A gym badge the first time, and training into a stat with room (TamaPoke's gym-win reward).
+    // A species' base EXP yield (dex.json column 13; another region's creature: 100).
+    function baseYield(dex) {
+        if (dex < 1 || dex > Dex.COUNT) { return 100; }
+        var r = Dex.row(dex);
+        return r.size() > 13 ? r[13] : 64;
+    }
+    function yieldOf(c) { return c.foreign ? 100 : baseYield(c.dex); }
+
     function finishTrainerWin() {
         var t = trainerRow();
         var badge = t[3];

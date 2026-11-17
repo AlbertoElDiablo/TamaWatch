@@ -19,6 +19,7 @@ class Combatant {
     var name = "";
     var shiny = false;
     var careMiss = 0;                // extra % to miss an attack: a hungry, dirty or unhappy pet
+    var missWhy = 0;                 // ... and why (careMissWhy: 1 hungry, 2 bath, 3 train)
     var t1 = 0;                      // its types (from the species table, or the wire)
     var t2 = -1;
     var foreign = false;             // a friend's creature from another region: no sprite here
@@ -39,6 +40,7 @@ class TurnLog {
     var stageDelta = 0;
     var stageMask = 0;
     var missed = false;
+    var missWhy = 0;                 // a miss from poor care: why (0: an ordinary miss)
     var crit = false;
     var immune = false;
     var skipped = false;
@@ -94,6 +96,7 @@ module Battle {
         c.hp = c.maxHp * Hp.now(p) / 100;
         if (c.hp < 1) { c.hp = 1; }
         c.careMiss = careMissPct(p);
+        c.missWhy = careMissWhy(p.food, p.hygiene, p.joy);
         return c;
     }
 
@@ -115,6 +118,7 @@ module Battle {
         c.hp = c.maxHp * cv[4] / 100;
         if (c.hp < 1) { c.hp = 1; }
         c.careMiss = Care.miss(m);
+        c.missWhy = careMissWhy(cv[0], cv[3], cv[1]);
         return c;
     }
 
@@ -136,7 +140,7 @@ module Battle {
     function toWire(c) {
         return Wire.join([c.dex, c.level, c.maxHp, c.base[0], c.base[1], c.base[2], c.base[3], c.base[4],
                           c.moves[0], c.moves[1], c.moves[2], c.moves[3], c.shiny ? 1 : 0, Wire.clean(c.name),
-                          c.hp, c.careMiss, c.nat, c.t1, c.t2, c.region], ",");
+                          c.hp, c.careMiss, c.nat, c.t1, c.t2, c.region, c.missWhy], ",");
     }
 
     function fromWire(s) {
@@ -182,6 +186,10 @@ module Battle {
             var cm = f[15].toNumber();
             if (h != null && h >= 1 && h <= c.maxHp) { c.hp = h; }
             if (cm != null && cm >= 0 && cm <= 40) { c.careMiss = cm; }
+            if (f.size() >= 21) {
+                var w = f[20].toNumber();
+                if (w != null && w >= 0 && w <= 3) { c.missWhy = w; }
+            }
         }
         return c;
     }
@@ -369,6 +377,7 @@ module Battle {
         // a pet that is hungry, dirty or unhappy misses more of its attacks (any attack)
         if (atk.careMiss > 0 && m[2] != Moves.MC_STATUS && rnd(100) < atk.careMiss) {
             log.missed = true;
+            log.missWhy = atk.missWhy;
             return log;
         }
         if (m[4] > 0 && m[5] != Moves.EF_NEVER_MISS && rnd(100) >= m[4]) {

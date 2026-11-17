@@ -8,7 +8,7 @@ import Toybox.System;
 import Toybox.Time;
 
 // Runs every 5 minutes in the background. It only reads the saved summary, projects
-// the awake drain forward (FOOD ~0.5/min, HYG ~0.25/min, JOY ~1 per 101 min) and asks the
+// the awake drain forward (FOOD 1 per 7 min, HYG ~0.25/min, JOY ~1 per 101 min) and asks the
 // watch to prompt you when a need runs low; never while you are recording an activity.
 (:background)
 class PetService extends System.ServiceDelegate {
@@ -80,7 +80,7 @@ class PetService extends System.ServiceDelegate {
         if (eggReady(d) || eggHatching(d)) { Background.exit(null); return; }
         if (d != null && !d["egg"] && !d["asleep"] && d["alerts"] != false) {
             var mins = (Time.now().value() - d["last"]) / 60;
-            var food = d["food"] - awakeMins(d) / 2;
+            var food = d["food"] - awakeMins(d) / 7;          // FOOD_EVERY_MIN
             var joy = d["joy"] - mins / 101;
             var hygiene = d["hygiene"] - mins / 4;
             if (food < 20) {

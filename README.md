@@ -13,7 +13,7 @@ watch models.
 
 ## What it does
 
-- **Your activity raises it.** Every 50 steps give it 1 EXP and every 3,000 steps an apple (steps add
+- **Your activity raises it.** Every 50 steps give it 1 EXP and every 2,000 steps an apple (steps add
   up over time, and steps from a day you didn't open the app are picked up from the watch's
   history). Each activity you record pays EXP by its length and sport, per minute: running or
   swimming 20, strength/gym 27, cycling 15, hiking 12, walking 8, anything else 15. Strength raises
@@ -40,10 +40,15 @@ watch models.
   also costs some food. HP refills by itself from empty in 15 minutes; each fruit and each training
   game gives some back at once, and a recorded activity gives back half.
 - **Good care wins fights.** When food, hygiene or joy is under half, your partner's attacks miss
-  more often (up to 4 in 10 with all three empty).
+  more often (up to 4 in 10 with all three empty), and the battle tells you why it missed.
 - **Training games find fruit.** Now and then (about 1 game in 3) a training game turns up one
   apple, blue berry or orange.
 - **Quiet while you train.** Care alerts wait while you're recording an activity.
+- **Hunger at a watch's pace.** A full food bar lasts about 12 waking hours, so a few pieces of
+  fruit a day keep your partner fed.
+- **Battles that pay like FireRed.** Each creature you beat is worth its species' base EXP
+  yield x its level / 7, and 1.5 times that from a trainer or a friend. Wild creatures come a few
+  levels below, at or above your partner's level.
 - **Battles.** Wild battles, 8 gyms with our own leaders and badges (easy or hard; hard gyms need
   some Body Battery), and link battles with a friend, **whatever region each of you plays** (a
   creature your watch has no picture of is shown as an orb in its type's colours).

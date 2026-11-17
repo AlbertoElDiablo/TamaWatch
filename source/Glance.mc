@@ -7,7 +7,7 @@ import Toybox.WatchUi;
 
 // What the widget shows without opening the game: the pet, its name and level and what it needs,
 // read from the summary PetModel.save() leaves in storage. The needs are projected forward with
-// the awake drain (FOOD ~0.5/min, HYG ~0.25/min, JOY a week from full to empty).
+// the awake drain (FOOD 1 per 7 min, HYG ~0.25/min, JOY a week from full to empty).
 (:glance)
 module Needs {
     function summary() {
@@ -22,7 +22,7 @@ module Needs {
         var poops = d["poops"] != null ? d["poops"] : 0;
         var e = d["energy"] != null ? d["energy"] : 50;
         var eDrain = d["bb"] == true ? 0 : mins / 4;       // with Body Battery it is yours, no drain
-        return [clamp(d["food"] - mins / 2), clamp(d["joy"] - mins / 101), clamp(e - eDrain),
+        return [clamp(d["food"] - mins / 7), clamp(d["joy"] - mins / 101), clamp(e - eDrain),
                 clamp(d["hygiene"] - mins / 4 - poops * mins / 8)];
     }
 

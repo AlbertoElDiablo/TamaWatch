@@ -94,10 +94,12 @@ dex = json.load(open(dp))
 rows = dex if isinstance(dex, list) else None
 def fix_rows(rs):
     for r in rs:
-        if isinstance(r, list) and r and isinstance(r[-1], int) and r[-1] > 255:
-            v = r[-1]
+        # the accent is column 12 (13 is the EXP yield); older tables ended with it
+        i = 12 if isinstance(r, list) and len(r) > 12 else -1
+        if isinstance(r, list) and r and isinstance(r[i], int) and r[i] > 255:
+            v = r[i]
             c = boost(((v >> 16) & 255, (v >> 8) & 255, v & 255))
-            r[-1] = c[0] << 16 | c[1] << 8 | c[2]
+            r[i] = c[0] << 16 | c[1] << 8 | c[2]
 if isinstance(dex, list):
     fix_rows(dex)
 elif isinstance(dex, dict):

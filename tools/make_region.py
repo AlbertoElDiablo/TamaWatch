@@ -45,6 +45,9 @@ for m in re.finditer(r'\{\s*"([^"]+)",\s*([^}]*)\},\s*//\s*(\d+)', tbl):
     nat[n] = [int(f[0]), int(f[1]), RARITY[f[2]], int(f[4]), int(f[5]), int(f[6]), int(f[7]), int(f[8]), int(f[9]),
               int(f[10]), TYPE[f[11]], -1 if t2 == "T_NONE" else TYPE[t2], rgb]
 
+# each species' base EXP yield (PokeAPI's open data, capped at 255 as in the Gen 3 games): what
+# beating it is worth (Battle EXP: yield x level / 7, x1.5 against a trainer, as in FireRed)
+BASE_EXP = {int(k): v for k, v in json.load(open(os.path.join(HERE, "base_exp.json"))).items()}
 rows = []
 for k in range(1, R.COUNT + 1):
     r = list(nat[R.nat(k)])
@@ -55,6 +58,7 @@ for k in range(1, R.COUNT + 1):
     r[0] = R.local(r[0]) if r[0] else 0
     if r[0] == 0:
         r[1] = 0
+    r.append(BASE_EXP.get(R.nat(k), 64))
     rows.append(r)
 # a species that only comes by evolving from another region's (Crobat from Golbat, Pikachu's
 # babies...) can't be reached here: it hatches from eggs instead, as a rare one

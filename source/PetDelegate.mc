@@ -163,7 +163,13 @@ class MainMenuDelegate extends WatchUi.Menu2InputDelegate {
             model.caress();
         } else if (id == :wild) {
             var foe = pickWild();
-            var bv = new BattleView(model, view, foe, model.level(), -1, false, 0xFFFF);
+            // a third weaker (1-4 levels below), a third your level, a third stronger (1-4 above)
+            var lv = model.level();
+            var pick = model.rnd(3);
+            if (pick == 0) { lv -= 1 + model.rnd(4); } else if (pick == 2) { lv += 1 + model.rnd(4); }
+            if (lv < 2) { lv = 2; }
+            if (lv > 100) { lv = 100; }
+            var bv = new BattleView(model, view, foe, lv, -1, false, 0xFFFF);
             WatchUi.switchToView(bv, new BattleDelegate(bv), WatchUi.SLIDE_UP);
             return;
         } else if (id == :gyms) {

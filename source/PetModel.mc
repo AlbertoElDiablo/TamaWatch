@@ -73,6 +73,20 @@ function actStart(st) {
 
 // Hungry, dirty or unhappy, it fights badly: every attack has this extra chance (%) to miss.
 // Each of FOOD, HYG and JOY under 50 adds up to 15 (at 0); together at most 40.
+// Food drops by 1 this often (minutes awake); asleep it doesn't drop at all.
+const FOOD_EVERY_MIN = 7;
+
+// Why a pet that missed did: its lowest of FOOD, HYG and JOY under 50 (0: none is).
+// 1 hungry, 2 wants a bath, 3 wants to train.
+function careMissWhy(food, hygiene, joy) {
+    var why = 0;
+    var low = 50;
+    if (food < low) { low = food; why = 1; }
+    if (hygiene < low) { low = hygiene; why = 2; }
+    if (joy < low) { why = 3; }
+    return why;
+}
+
 function careMissPct(p) {
     var m = 0;
     var v = [p.food, p.hygiene, p.joy];
@@ -364,18 +378,21 @@ class PetModel {
 
     // A battle's EXP for the pet (only if it fought): wild foes pay full a few times a day, gym
     // leaders double on hard, link battles the most. A loss still teaches a quarter.
-    function battleExp(kind, foeLevels, won, hardGym) {
+    // pts: what the creatures beaten are worth (BattleView: base yield x level / 7 each, FireRed's
+    // rule). A trainer's or a friend's pay 1.5 times that (a hard gym twice that again); wild wins
+    // pay in full a few times a day, then a tenth; a lost battle pays a tenth of a win.
+    function battleExp(kind, pts, won, hardGym) {
         var n = 0;
         if (kind == 0) {
             var d = today();
             if (d != wildDay) { wildDay = d; wildWins = 0; }
             if (won) { wildWins++; }
-            n = foeLevels * 6;
+            n = pts;
             if (wildWins > WILD_FULL_PER_DAY) { n = n / 10; }
         } else if (kind == 1) {
-            n = foeLevels * (hardGym ? 30 : 15);
+            n = hardGym ? pts * 3 : pts * 3 / 2;     // x1.5, a hard gym x3
         } else {
-            n = foeLevels * 20;
+            n = pts * 3 / 2;                         // a friend's team: a trainer's
         }
         if (!won) { n = n / 10; }           // a lost battle: a tenth of what winning it pays
         if (n < 1) { n = 1; }
@@ -539,8 +556,10 @@ class PetModel {
         }
         drainPhase = (drainPhase + 1) % DRAIN_EVERY;
         var drainNow = drainPhase == 0;
+        // food: a full bar lasts about 12 waking hours (TamaPoke's pace emptied it in 3.5, faster
+        // than a watch you glance at can keep up with)
+        if (ageMinutes % FOOD_EVERY_MIN == 0) { food = clamp100(food - 1); }
         if (drainNow) {
-            food = clamp100(food - 1);                     // half TamaPoke's pace
             energy = clamp100(energy - 1);
             if (food > 40 && poops < 3 && rnd(200) < 15) { poops++; }   // half TamaPoke's rate
             if (ageMinutes % (2 * DRAIN_EVERY) == 0) { hygiene = clamp100(hygiene - 1 - 4 * poops); }
