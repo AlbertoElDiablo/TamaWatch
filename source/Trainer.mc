@@ -589,13 +589,20 @@ class SummaryView extends WatchUi.View {
                 dc.clearClip();
             }
             var st = model.memberStats(m);
+            // its nature: the name in the frame, the stat it raises in orange, the one it lowers in blue
+            var nat = Battle.natureOf(m[4], m[5], m[6], m[7]);
+            var natAt = [1, 2, 5, 3, 4];
+            var upI = nat / 5 == nat % 5 ? -1 : natAt[nat / 5];
+            var downI = nat / 5 == nat % 5 ? -1 : natAt[nat % 5];
+            dc.setColor(0x000055, Graphics.COLOR_TRANSPARENT);
+            dc.drawText(81, capY(Graphics.FONT_XTINY, 64), Graphics.FONT_XTINY, Fit.trim(dc, Tr.t(Battle.natureNames()[nat]).toUpper(), 78, Graphics.FONT_XTINY), Graphics.TEXT_JUSTIFY_CENTER);
             var labels = [Tr.t("HP"), Tr.t("ATTACK"), Tr.t("DEFENSE"), Tr.t("SP.ATK"), Tr.t("SP.DEF"), Tr.t("SPEED")];
             if (dc.getTextWidthInPixels(labels[2], Graphics.FONT_XTINY) > 86) { labels[2] = Tr.t("DEF."); }   // VERTEIDIGUNG
             for (var i = 0; i < 6; i++) {
                 var y = 50 + i * 17;
                 dc.setColor(0x555555, Graphics.COLOR_TRANSPARENT);
                 dc.fillRoundedRectangle(128, y + 1, 88, 15, 6);          // wide enough for VELOCIDADE
-                dc.setColor(0xFFFFFF, Graphics.COLOR_TRANSPARENT);
+                dc.setColor(i == upI ? 0xFFAA00 : (i == downI ? 0x55AAFF : 0xFFFFFF), Graphics.COLOR_TRANSPARENT);
                 dc.drawText(172, capY(Graphics.FONT_XTINY, y + 8), Graphics.FONT_XTINY, Fit.trim(dc, labels[i], 86, Graphics.FONT_XTINY), Graphics.TEXT_JUSTIFY_CENTER);
                 dc.setColor(0x000055, Graphics.COLOR_TRANSPARENT);
                 dc.drawText(244, capY(Graphics.FONT_XTINY, y + 8), Graphics.FONT_XTINY, st[i].toString(), Graphics.TEXT_JUSTIFY_RIGHT);

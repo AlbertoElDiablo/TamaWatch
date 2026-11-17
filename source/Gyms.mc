@@ -85,9 +85,10 @@ class GymView extends WatchUi.View {
             dc.setColor(open ? INK : TEXT_GREY, Graphics.COLOR_TRANSPARENT);
             var done = model.hasBadge(i, hard) ? " *" : "";
             dc.drawText(Fit.COL_X + 8, capY(UiFont.tiny(), y + 10), UiFont.tiny(), t[0] + done, Graphics.TEXT_JUSTIFY_LEFT);
-            dc.setColor(TEXT_GREY, Graphics.COLOR_TRANSPARENT);
-            dc.drawText(Fit.COL_X + 8, capY(UiFont.tiny(), y + 25), UiFont.tiny(), open ? t[1].toUpper() : (tired ? Tr.t("LOW BODY BATTERY") : Tr.t("LOCKED")), Graphics.TEXT_JUSTIFY_LEFT);
-            var team = t[4];
+            var team = trainerTeam(model, i, hard, t[4]);
+            var re = team != t[4];                         // a rematch is due: stronger now
+            dc.setColor(re && open ? 0xFF5500 : TEXT_GREY, Graphics.COLOR_TRANSPARENT);
+            dc.drawText(Fit.COL_X + 8, capY(UiFont.tiny(), y + 25), UiFont.tiny(), open ? (re ? Tr.t("REMATCH!") : t[1].toUpper()) : (tired ? Tr.t("LOW BODY BATTERY") : Tr.t("LOCKED")), Graphics.TEXT_JUSTIFY_LEFT);
             var lv = 0;
             for (var j = 0; j < team.size(); j++) { if (team[j][1] > lv) { lv = team[j][1]; } }
             if (!tired) {                                   // closed for Body Battery: just the warning
@@ -136,7 +137,8 @@ class GymDelegate2 extends WatchUi.BehaviorDelegate {
                 var bv = new BattleView(v.model, v.petView, 0, 0, idx, v.hard, 0xFFFF);
                 WatchUi.switchToView(bv, new BattleDelegate(bv), WatchUi.SLIDE_UP);
             } else {
-                var pk = new PickView(v.model, v.petView, idx, v.hard, v.trainers[idx]);
+                var tr = v.trainers[idx];
+                var pk = new PickView(v.model, v.petView, idx, v.hard, [tr[0], tr[1], tr[2], tr[3], trainerTeam(v.model, idx, v.hard, tr[4])]);
                 WatchUi.switchToView(pk, new PickDelegate(pk), WatchUi.SLIDE_LEFT);
             }
             return true;
@@ -291,3 +293,64 @@ class PickDelegate extends WatchUi.BehaviorDelegate {
 // Hard gyms need some energy in you: with your Body Battery at 20% or less they are closed
 // (greyed out, and START says why). Unknown Body Battery never closes them.
 function lowBattery(m) { return m.bbNow >= 0 && m.bbNow <= 20; }
+
+// A trainer's team for this battle: its own, or for a due rematch (beaten, 2 days on: Extra) a
+// stronger one, its ace 2 levels over your partner (and at least 3 over before), the rest as far
+// below it as they were, each evolved as far as its level allows.
+function trainerTeam(m, idx, hard, team) {
+    if (idx < 0 || idx > 12 || !m.hasBadge(idx, hard) || !Extra.rematchReady(idx)) { return team; }
+    return grownTeam(team, m.level() + 2);
+}
+
+function grownTeam(team, target) {
+    var top = 0;
+    for (var j = 0; j < team.size(); j++) { if (team[j][1] > top) { top = team[j][1]; } }
+    if (target < top + 3) { target = top + 3; }
+    var out = [];
+    for (var j = 0; j < team.size(); j++) {
+        var lv = team[j][1] + target - top;
+        if (lv > 100) { lv = 100; }
+        out.add([evolvedAt(team[j][0], lv), lv]);
+    }
+    return out;
+}
+
+// the species a creature would have become by level lv
+function evolvedAt(dex, lv) {
+    for (var g = 0; g < 4; g++) {
+        var nx = Dex.evolvesTo(dex);
+        var at = Dex.evolveLevel(dex);
+        if (nx <= 0 || at <= 0 || lv < at) { break; }
+        dex = nx;
+    }
+    return dex;
+}
+
+// The rival (FireRed's): leads with the starter strong against yours (grass, fire, water: the
+// next one), and brings more as you level up and earn badges, all around your level; the others
+// come from the region, always the same ones for you (seeded by when you started).
+const RIVAL_NAME = "KAI";
+const RIVAL = 99;                // its trainer number in BattleView
+function rivalTeam(m) {
+    var st = Dex.STARTERS;
+    var mine = -1;
+    for (var i = 0; i < 3 && mine < 0; i++) { if (m.isRegistered(st[i]) == 1) { mine = i; } }
+    if (mine < 0) { mine = (m.trJoined / 7).toNumber() % 3; }
+    var lv = m.level();
+    var size = 1 + (m.badgeCount(false) + 1) / 2 + lv / 20;
+    if (size > 6) { size = 6; }
+    var out = [];
+    var seed = (m.trJoined / 60).toNumber();
+    for (var i = 1; i < size; i++) {
+        var n = 1;
+        for (var tries = 0; tries < 30; tries++) {
+            n = 1 + ((seed + i * 37 + tries * 11) % Dex.COUNT).abs();
+            if (Dex.rarity(n) != Dex.R_LEGEND && st.indexOf(n) < 0) { break; }
+        }
+        var l = lv - 1 - (i % 3);
+        if (l < 2) { l = 2; }
+        out.add([evolvedAt(n, l), l]);
+    }
+    out.add([evolvedAt(st[(mine + 1) % 3], lv + 1), lv + 1]);   // the ace last
+    return out;
+}

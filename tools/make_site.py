@@ -209,7 +209,11 @@ PAGE = r"""<!doctype html>
         <li><b>Only your partner gets hungry.</b> Team and Pokébox creatures recover to full within 24 hours (HP within 15 minutes) and keep their own care when they become partner.</li>
         <li><b>Hunger at a watch's pace:</b> a full food bar lasts about 12 waking hours, and an apple comes every 2,000 steps.</li>
       <li><b>Battles pay like FireRed:</b> each creature beaten is worth its species' EXP yield x its level / 7 (x1.5 from a trainer). Wild creatures come a few levels below, at or above your partner's, and a miss from poor care tells you why (hungry, wants a bath, wants to train).</li>
-      <li><b>A daily gift:</b> 2 pieces of fruit the first time you open the app each day (missed days don't add up).</li>
+      <li><b>A daily gift:</b> 2 pieces of fruit the first time you open the app after 6:00 each morning (missed days don't add up).</li>
+      <li><b>Natures, a battle BAG, gym rematches and a rival</b> who grows with you; the creature that beats a foe gets its EXP.</li>
+      <li><b>Slow and steady training</b>, like your own fitness: workouts, games and gyms add a little each time.</li>
+      <li><b>Route Crossing</b>, a new defence game: hop your trainer across grass, paths, rivers and railways for as long as you last.</li>
+      <li>The clock follows your watch's 12 or 24 hour setting.</li>
       <li><b>Asleep means asleep.</b> Your partner doesn't get hungry while you sleep, and no alerts reach you then (nor in Do Not Disturb).</li>
       <li><b>Each step counts once for eggs:</b> a waiting egg hatches first, then steps count toward the next one.</li>
         <li><b>Recorded activities count again.</b> Watches that date them differently were skipping every workout; now each one pays.</li>

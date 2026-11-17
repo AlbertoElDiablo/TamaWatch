@@ -17,6 +17,7 @@ class BattleView extends WatchUi.View {
     const MENU_MOVES = 1;
     const MENU_RUN = 3;
     const MENU_SWITCH = 2;
+    const MENU_BAG = 4;
 
     var model;
     var petView;
@@ -86,7 +87,7 @@ class BattleView extends WatchUi.View {
         if (trainer == -2) { return; }       // a link battle: setupLink() fills in the rest
         if (trainer >= 0) {
             var t = trainerRow();
-            team = t[4];
+            team = trainer == RIVAL ? t[4] : trainerTeam(model, trainer, hard, t[4]);   // a due rematch: stronger
             var top = 0;
             for (var i = 0; i < team.size(); i++) { if (team[i][1] > top) { top = team[i][1]; } }
             buildSquad(top);
@@ -146,6 +147,8 @@ class BattleView extends WatchUi.View {
 
     // The battle is over (won or lost) and its lines are read: the result screen takes its place.
     function showResult() {
+        if (trainer == RIVAL) { Extra.rivalDone(model, won); }       // back in a few days
+        awardExp(won);
         savePetHp();
         var mine = [];
         for (var i = 0; i < squad.size(); i++) { mine.add(squad[i].fainted()); }
@@ -397,7 +400,14 @@ class BattleView extends WatchUi.View {
         playStep(0);
     }
 
+    // trainer RIVAL (Gyms.mc) is the rival (rivalRow, its team built for this battle); 0-12 are
+    // trainers.json's
+    var rivalRow = null;
     function trainerRow() {
+        if (trainer == RIVAL) {
+            if (rivalRow == null) { rivalRow = [RIVAL_NAME, "", 0, -1, rivalTeam(model)]; }
+            return rivalRow;
+        }
         return WatchUi.loadResource(Rez.JsonData.trainers)[trainer];
     }
 
@@ -461,6 +471,40 @@ class BattleView extends WatchUi.View {
     }
 
     // ---------- turns ----------
+
+    // ---------- the bag: fruit in battle (it costs the turn, as an item does in FireRed) ----------
+    // apple: 20% of HP back; blue berry: no more poison or burn; orange: awake, no paralysis,
+    // ice or confusion. Fruit that would do nothing is kept, with a word why.
+    function useItem(i) {
+        if (i < 0 || i > 2 || model.bag[i] <= 0) { return; }
+        var names = [Tr.t("Apple"), Tr.t("Blue berry"), Tr.t("Orange")];
+        var did = false;
+        if (i == 0 && you.hp < you.maxHp) {
+            Battle.heal(you, you.maxHp / 5 > 0 ? you.maxHp / 5 : 1);
+            did = true;
+        } else if (i == 1 && (you.ailment == Moves.AIL_POISON || you.ailment == Moves.AIL_BURN)) {
+            you.ailment = Moves.AIL_NONE;
+            did = true;
+        } else if (i == 2 && (you.ailment == Moves.AIL_SLEEP || you.ailment == Moves.AIL_PARA ||
+                              you.ailment == Moves.AIL_FREEZE || you.confuseTurns > 0)) {
+            if (you.ailment != Moves.AIL_POISON && you.ailment != Moves.AIL_BURN) { you.ailment = Moves.AIL_NONE; }
+            you.confuseTurns = 0;
+            did = true;
+        }
+        menu = MENU_MAIN;
+        sel = 0;
+        if (!did) { msgs = [Tr.t("It won't have any effect.")]; return; }
+        model.bag[i] -= 1;
+        model.save();
+        steps = [[[Tr.f("{0} ate the {1}!", [you.name, names[i]]), i == 0 ? Tr.t("Its HP went up!") : Tr.t("It feels better!")],
+                  -1, -1, you.hp, foe.hp, false, false]];
+        actStep(foe, you, Battle.aiChoose(foe, you, hard));       // the foe still gets its turn
+        if (!you.fainted() && !foe.fainted()) {
+            chipStep(you);
+            chipStep(foe);
+        }
+        finishTurn();
+    }
 
     function useMove(slot) {
         var mv = you.moves[slot];
@@ -534,6 +578,28 @@ class BattleView extends WatchUi.View {
         hpTarget = [st[3], st[4]];
         if (st[5]) { faintUntil[0] = now + FAINT_MS; gone[0] = true; }
         if (st[6]) { faintUntil[1] = now + FAINT_MS; gone[1] = true; }
+        // battle EXP duel by duel (as it plays, on both watches of a link battle): a foe that
+        // faints pays its whole worth to the one of yours on the field; one of yours that faints
+        // gets a tenth of the worth of the foe that beat it
+        if (st[6] && koSeen.indexOf(foe) < 0) { koSeen.add(foe); credit(squadAt, foeValue(foe)); }
+        if (st[5] && downSeen.indexOf(you) < 0) { downSeen.add(you); credit(squadAt, foeValue(foe) / 10); }
+    }
+
+    var koSeen = [];
+    var downSeen = [];
+    var koExp = [];             // EXP earned so far, per squad member
+    function credit(k, n) {
+        while (koExp.size() < squad.size()) { koExp.add(0); }
+        if (k >= 0 && k < koExp.size()) { koExp[k] += n < 1 ? 1 : n; }
+    }
+
+    // What beating c is worth (FireRed): its species' base yield x its level / 7, x1.5 from a
+    // trainer or a friend, x3 from a hard gym.
+    function foeValue(c) {
+        var v = yieldOf(c) * c.level / 7;
+        if (lobby != null) { v = v * 3 / 2; }
+        else if (trainer >= 0) { v = hard ? v * 3 : v * 3 / 2; }
+        return v < 1 ? 1 : v;
     }
 
     // Who fainted, who comes in next, and whether it is over.
@@ -546,13 +612,11 @@ class BattleView extends WatchUi.View {
             over = true;
             won = true;
             if (trainer >= 0) { finishTrainerWin(); } else { msgs.add(Tr.t("You won!")); }
-            awardExp(true);
             savePetHp();
         } else if (you.fainted() && !youLeft) {
             over = true;
             won = false;
             msgs.add(Tr.t("You lost..."));
-            awardExp(false);
             savePetHp();
         } else if (lobby != null) {
             pendingFoeIdx = foeLeft ? nextAliveFoe() : -1;   // each side's next one comes in
@@ -625,32 +689,38 @@ class BattleView extends WatchUi.View {
     }
 
     // EXP for the pet when it took part: wild foes, gym leaders (their whole team), link battles.
+    // At the end (BattleView.showResult): each creature gets what it earned duel by duel (koExp).
+    // Your partner's goes through the wild-battle daily limit and not to the team; a team member's
+    // straight to it. The bench gets nothing from a battle.
+    var memberExp = [];         // [[name, EXP], ...] of the team members who earned some
     function awardExp(didWin) {
-        if (model.isEgg() || (lobby == null && !petIn)) { return; }
-        if (lobby != null) {
-            var inSquad = false;
-            for (var i = 0; i < squad.size(); i++) { if (squad[i].dex == model.dex && squad[i].level == model.level()) { inSquad = true; } }
-            if (!inSquad) { return; }
-        }
-        // FireRed's EXP: each creature beaten pays its species' base yield x its level / 7
-        // (x1.5 for a trainer's, which battleExp adds); summed over the whole other side
+        if (model.isEgg()) { return; }
         var kind = lobby != null ? 2 : (trainer >= 0 ? 1 : 0);
-        var pts = 0;
-        if (kind == 0) { pts = yieldOf(foe) * foe.level / 7; }
-        else if (kind == 1) {
-            for (var i = 0; i < team.size(); i++) { pts += baseYield(team[i][0]) * team[i][1] / 7; }
-        } else {
-            for (var i = 0; i < foeSquad.size(); i++) { pts += yieldOf(foeSquad[i]) * foeSquad[i].level / 7; }
-        }
         var before = model.level();
-        var n = model.battleExp(kind, pts, didWin, hard);
-        expGained = n;
-        levelUp = model.level() > before;
-        if (n > 0) {
-            msgs.add(model.name() + Tr.t(" gained ") + n + Tr.t(" EXP!"));
-            if (model.level() > before) { msgs.add(model.name() + Tr.t(" grew to Lv.") + model.level() + "!"); }
+        for (var k = 0; k < koExp.size() && k < squadParty.size(); k++) {
+            var n = koExp[k];
+            if (n <= 0) { continue; }
+            var pi = squadParty[k];
+            if (pi < 0) {
+                n = model.battleGain(kind, n, didWin);
+                if (squad[k] == lead()) { expGained = n; }
+            } else if (pi < model.party.size()) {
+                var m = model.party[pi];
+                while (m.size() < 14) { m.add(m.size() == 12 ? 0 : Lvl.expFor(m[3])); }
+                var e = m[13] + n;
+                if (e > Lvl.expFor(Lvl.MAX)) { e = Lvl.expFor(Lvl.MAX); }
+                m[13] = e;
+                m[3] = Lvl.levelFor(e);
+                memberExp.add([model.memberName(m).toUpper(), n]);
+                if (squad[k] == lead()) { expGained = n; }
+            }
         }
+        levelUp = model.level() > before;
+        model.save();
     }
+
+    // who the result screen shows on the left: your partner when it fought, else the last one out
+    function lead() { return petC != null ? petC : you; }
 
     // A gym badge the first time, and training into a stat with room (TamaPoke's gym-win reward).
     // A species' base EXP yield (dex.json column 13; another region's creature: 100).
@@ -665,8 +735,9 @@ class BattleView extends WatchUi.View {
         var t = trainerRow();
         var badge = t[3];
         newBadge = badge >= 0 && !model.hasBadge(badge, hard);
-        if (!model.hasBadge(trainer, hard)) { model.winBadge(trainer, hard); }   // unlocks the next trainer
-        var amt = (hard ? 6 + model.rnd(5) : 3 + model.rnd(3)) + trainer / 3;
+        if (trainer != RIVAL && !model.hasBadge(trainer, hard)) { model.winBadge(trainer, hard); }   // unlocks the next trainer
+        if (trainer != RIVAL) { Extra.beaten(trainer); }             // a rematch is due in 2 days
+        var amt = hard ? 2 + model.rnd(2) : 1 + model.rnd(2);          // slow and steady
         trainGain = petIn ? model.rewardTraining(amt) : 0;   // only the live pet, and only if it fought
         model.save();
         msgs.add(Tr.t("You beat ") + t[0] + "!");
@@ -762,9 +833,16 @@ class BattleView extends WatchUi.View {
                 }
             }
         } else if (menu == MENU_MAIN) {
-            wideCell(dc, Tr.t("FIGHT"), sel == 0, UI_BG_DAY);
-            cell(dc, 2, Tr.t("POKEMON"), sel == 1, UI_TRACK, squad.size() < 2);
-            cell(dc, 3, Tr.t("RUN"), sel == 2, UI_TRACK, false);
+            cell(dc, 0, Tr.t("FIGHT"), sel == 0, UI_BG_DAY, false);
+            cell(dc, 1, Tr.t("BAG"), sel == 1, UI_BG_DAY, lobby != null);       // not in link battles
+            cell(dc, 2, Tr.t("POKEMON"), sel == 2, UI_TRACK, squad.size() < 2);
+            cell(dc, 3, Tr.t("RUN"), sel == 3, UI_TRACK, false);
+        } else if (menu == MENU_BAG) {
+            var names = [Tr.t("Apple"), Tr.t("Blue berry"), Tr.t("Orange")];
+            for (var i = 0; i < 3; i++) {
+                cell(dc, i, fit(dc, names[i], CELL_W - 26) + " x" + model.bag[i], sel == i, UI_BG_DAY, model.bag[i] == 0);
+            }
+            cell(dc, 3, Tr.t("BACK"), sel == 3, UI_TRACK, false);
         } else if (menu == MENU_RUN) {
             wideCell(dc, Tr.t("RUN?"), false, UI_BG_DAY);
             cell(dc, 2, Tr.t("YES"), sel == 0, UI_BAR_BAD, false);
@@ -1016,7 +1094,6 @@ class BattleDelegate extends WatchUi.BehaviorDelegate {
     }
 
     function cells() {
-        if (v.menu == v.MENU_MAIN) { return 3; }
         if (v.menu == v.MENU_RUN) { return 2; }
         return 4;
     }
@@ -1044,8 +1121,11 @@ class BattleDelegate extends WatchUi.BehaviorDelegate {
             }
         } else if (v.menu == v.MENU_MAIN) {
             if (v.sel == 0) { v.menu = v.MENU_MOVES; v.sel = 0; }
-            else if (v.sel == 2) { v.menu = v.MENU_RUN; v.sel = 1; }
+            else if (v.sel == 1) { if (v.lobby == null) { v.menu = v.MENU_BAG; v.sel = 0; } }
+            else if (v.sel == 3) { v.menu = v.MENU_RUN; v.sel = 1; }
             else if (v.squad.size() > 1) { v.menu = v.MENU_SWITCH; v.sel = 0; }
+        } else if (v.menu == v.MENU_BAG) {
+            if (v.sel == 3) { v.menu = v.MENU_MAIN; v.sel = 1; } else { v.useItem(v.sel); }
         } else if (v.menu == v.MENU_SWITCH) {
             var mi = v.sel + (v.sel >= v.squadAt ? 1 : 0);
             if (mi < v.squad.size() && !v.squad[mi].fainted()) {

@@ -117,6 +117,7 @@ class PetDelegate extends WatchUi.BehaviorDelegate {
             rows.add([Tr.t("PET IT"), :pet, 0, -1]);
             rows.add([Tr.t("GYMS ") + model.badgeCount(false) + "/8", :gyms, 0, -1]);
             rows.add([Tr.t("WILD BATTLE"), :wild, 0, -1]);
+            if (Extra.rivalReady(model)) { rows.add([Tr.t("RIVAL BATTLE"), :rival, 1, -1]); }
             rows.add([Tr.t("LINK BATTLE"), :link, 0, -1]);
             rows.add([Tr.t("TRADE"), :trade, 0, -1]);
         }
@@ -171,6 +172,10 @@ class MainMenuDelegate extends WatchUi.Menu2InputDelegate {
             if (lv > 100) { lv = 100; }
             var bv = new BattleView(model, view, foe, lv, -1, false, 0xFFFF);
             WatchUi.switchToView(bv, new BattleDelegate(bv), WatchUi.SLIDE_UP);
+            return;
+        } else if (id == :rival) {
+            var rv = new BattleView(model, view, 0, 0, RIVAL, false, 0xFFFF);
+            WatchUi.switchToView(rv, new BattleDelegate(rv), WatchUi.SLIDE_UP);
             return;
         } else if (id == :gyms) {
             var gv = new GymView(model, view);

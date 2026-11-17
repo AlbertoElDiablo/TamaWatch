@@ -127,6 +127,7 @@ class Sdc {
     function fillCircle(x, y, r) { dc.fillCircle(X(x), Y(y), L(r)); }
     function drawCircle(x, y, r) { dc.drawCircle(X(x), Y(y), L(r)); }
     function fillEllipse(x, y, a, b) { dc.fillEllipse(X(x), Y(y), L(a), L(b)); }
+    function drawEllipse(x, y, a, b) { dc.drawEllipse(X(x), Y(y), L(a), L(b)); }
     function drawLine(x1, y1, x2, y2) { dc.drawLine(X(x1), Y(y1), X(x2), Y(y2)); }
 
     function fillPolygon(pts) {

@@ -77,6 +77,11 @@ class BattleResultView extends WatchUi.View {
         var items = [];
         if (b.expGained > 0) { items.add([Tr.t("EXP") + " +" + b.expGained, 0x00AA00]); }
         if (b.levelUp) { items.add([Tr.t("Lv.") + b.model.level() + "!", 0x00AA00]); }
+        // the team members who fought and earned EXP too
+        for (var k = 0; k < b.memberExp.size(); k++) {
+            if (b.memberExp[k][0].equals(lead.name)) { continue; }
+            items.add([b.memberExp[k][0] + " +" + b.memberExp[k][1], 0x00AA00]);
+        }
         if (b.petC != null) {
             var pct = b.petC.hp * 100 / (b.petC.maxHp > 0 ? b.petC.maxHp : 1);
             items.add([Tr.t("HP") + " " + pct + "%", pct > 50 ? INK : (pct > 20 ? 0xFF5500 : 0xFF0000)]);

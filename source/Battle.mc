@@ -89,6 +89,7 @@ module Battle {
         fill(c, p.dex, lvl,
              stat(r[3], p.ivHp, lvl, 10), stat(r[4], p.ivAtk, lvl, p.trAtk), stat(r[5], p.ivDef, lvl, p.trDef),
              stat(r[7], p.ivAtk, lvl, p.trAtk), stat(r[8], p.ivDef, lvl, p.trDef), stat(r[6], p.ivSpe, lvl, p.trSpe));
+        applyNature(c, natureOf(p.ivAtk, p.ivDef, p.ivSpe, p.ivHp));
         c.moves = [p.moves[0], p.moves[1], p.moves[2], p.moves[3]];
         c.shiny = p.shiny;
         if (p.nick.length() > 0) { c.name = p.nick.toUpper(); }
@@ -109,6 +110,7 @@ module Battle {
         fill(c, m[0], lvl,
              stat(r[3], m[7], lvl, 10), stat(r[4], m[4], lvl, m[8]), stat(r[5], m[5], lvl, m[9]),
              stat(r[7], m[4], lvl, m[8]), stat(r[8], m[5], lvl, m[9]), stat(r[6], m[6], lvl, m[10]));
+        applyNature(c, natureOf(m[4], m[5], m[6], m[7]));
         c.moves = [m[11][0], m[11][1], m[11][2], m[11][3]];
         if (c.moves.indexOf(0) == 0) { c.moves = bestMoves(m[0], lvl); }
         if (m[1].length() > 0) { c.name = m[1].toUpper(); }
@@ -130,6 +132,7 @@ module Battle {
         fill(c, dex, lvl,
              stat(r[3], iv, lvl, 10), stat(r[4], iv, lvl, 0), stat(r[5], iv, lvl, 0),
              stat(r[7], iv, lvl, 0), stat(r[8], iv, lvl, 0), stat(r[6], iv, lvl, 0));
+        applyNature(c, rnd(25));            // a wild or a trainer's creature: any nature
         c.moves = bestMoves(dex, lvl);
         return c;
     }
@@ -212,6 +215,29 @@ module Battle {
     }
 
     function stat(base, iv, lvl, tr) { return base + lvl + iv * lvl / 100 + tr; }
+
+    // ---------- natures (FireRed's 25, in its order) ----------
+    // Nature n raises stat n / 5 by 10% and lowers stat n % 5 by 10%, stats in the order ATK, DEF,
+    // SPE, SP.ATK, SP.DEF (n / 5 == n % 5: neutral). A creature's comes from its IVs, so it never
+    // changes and survives evolution.
+    function natureOf(ivA, ivD, ivS, ivH) { return (ivA * 3 + ivD * 7 + ivS * 11 + ivH * 13) % 25; }
+
+    function natureNames() {
+        return ["Hardy", "Lonely", "Brave", "Adamant", "Naughty", "Bold", "Docile", "Relaxed", "Impish", "Lax",
+                "Timid", "Hasty", "Serious", "Jolly", "Naive", "Modest", "Mild", "Quiet", "Bashful", "Rash",
+                "Calm", "Gentle", "Sassy", "Careful", "Quirky"];
+    }
+
+    // c.base is [ATK, DEF, SP.ATK, SP.DEF, SPE]
+    function applyNature(c, n) {
+        var at = [0, 1, 4, 2, 3];
+        var up = at[n / 5];
+        var down = at[n % 5];
+        if (up == down) { return; }
+        c.base[up] = c.base[up] * 11 / 10;
+        c.base[down] = c.base[down] * 9 / 10;
+        if (c.base[down] < 1) { c.base[down] = 1; }
+    }
 
     // TamaPoke's relearnFromLevel(): fill four slots with the strongest moves reached
     // (level-up first, TMs only from level 40), STAB preferred, and make sure at least

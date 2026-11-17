@@ -422,8 +422,14 @@ class PetView extends WatchUi.View {
     // capitals in the species' colour; the status line under it.
     function drawHeader(dc, cx) {
         var ct = System.getClockTime();
-        var hr = ct.hour % 12 == 0 ? 12 : ct.hour % 12;
-        var clock = hr + ":" + ct.min.format("%02d") + (ct.hour < 12 ? Tr.t(" AM") : Tr.t(" PM"));
+        // as your watch shows the time: 24-hour (13:05) or 12-hour (1:05 PM)
+        var clock;
+        if (System.getDeviceSettings().is24Hour) {
+            clock = ct.hour.format("%02d") + ":" + ct.min.format("%02d");
+        } else {
+            var hr = ct.hour % 12 == 0 ? 12 : ct.hour % 12;
+            clock = hr + ":" + ct.min.format("%02d") + (ct.hour < 12 ? Tr.t(" AM") : Tr.t(" PM"));
+        }
         outlined(dc, cx, 6, Graphics.FONT_XTINY, clock, Graphics.COLOR_WHITE);
         var title = model.isEgg() ? Tr.t("EGG") : (model.shiny ? "*" : "") + model.name().toUpper() + Tr.t(" Lv.") + model.level();
         var col = model.isEgg() ? Graphics.COLOR_WHITE : Dex.row(model.dex)[12];
@@ -467,6 +473,7 @@ class PetView extends WatchUi.View {
         if (model.canRunawayNow()) { return Tr.t("It wants to leave... Hold UP"); }
         if (model.learnOffer() != 0) { return Tr.t("New move! Hold UP"); }
         if (model.waiting != null) { return Tr.t("Party full: make room. Hold UP"); }
+        if (model.canAct() && Extra.rivalReady(model)) { return Tr.f("{0} wants to battle! Hold UP", [RIVAL_NAME]); }
         return null;
     }
 

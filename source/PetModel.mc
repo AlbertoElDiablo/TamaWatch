@@ -35,7 +35,8 @@ var workoutsRead = 0;            // when PetModel.claimWorkouts last read the hi
 // Intensity minutes a recorded activity already paid for (as its own EXP): taken off the next
 // intensity minutes read, so the same effort isn't paid twice. Saved in "bag".
 var amCredit = 0;
-var giftDay = 0;                 // the day the daily fruit was last given (saved in "bag")
+var giftDay = 0;
+var expSolo = false;             // gainExp without the team's 25% (a battle's EXP)                 // the day the daily fruit was last given (saved in "bag")
 
 // The watch says you are asleep right now: its sleep mode (your sleep window, or a sleep it
 // detected). Used besides the profile's bedtime and wake time.
@@ -102,7 +103,7 @@ class PetModel {
     const RUNAWAY_TICKS = 180;
     const FAREWELL_AGE_MIN = 4320;          // 3 days in final form
     const EVO_PENALTY_LEVELS = 24;
-    const DEF_TRAIN_TICKS = 60;
+    const DEF_TRAIN_TICKS = 360;            // 6 calm hours: +1 DEF
     const MAX_CATCHUP_MIN = 20160;          // 2 weeks
     const CHUNK = 40;                       // minutes replayed per update call at most
     const CHUNK_MS = 40;                    // ...and no longer than this (the watchdog ends long calls)
@@ -354,7 +355,7 @@ class PetModel {
         var up = level() - before;
         repExp += n;
         // the rest of the team (the party) gets a quarter of it
-        var share = n / 4;
+        var share = $.expSolo ? 0 : n / 4;
         for (var i = 0; share > 0 && i < party.size(); i++) {
             var m = party[i];
             if (m.size() < 13) { m.add(0); }                            // bond, for older saves
@@ -378,26 +379,19 @@ class PetModel {
 
     // A battle's EXP for the pet (only if it fought): wild foes pay full a few times a day, gym
     // leaders double on hard, link battles the most. A loss still teaches a quarter.
-    // pts: what the creatures beaten are worth (BattleView: base yield x level / 7 each, FireRed's
-    // rule). A trainer's or a friend's pay 1.5 times that (a hard gym twice that again); wild wins
-    // pay in full a few times a day, then a tenth; a lost battle pays a tenth of a win.
-    function battleExp(kind, pts, won, hardGym) {
-        var n = 0;
+    // A battle's EXP for the partner (BattleView worked it out duel by duel, FireRed's way): wild
+    // wins pay in full a few times a day, then a tenth.
+    function battleGain(kind, n, won) {
         if (kind == 0) {
             var d = today();
             if (d != wildDay) { wildDay = d; wildWins = 0; }
             if (won) { wildWins++; }
-            n = pts;
             if (wildWins > WILD_FULL_PER_DAY) { n = n / 10; }
-        } else if (kind == 1) {
-            n = hardGym ? pts * 3 : pts * 3 / 2;     // x1.5, a hard gym x3
-        } else {
-            n = pts * 3 / 2;                         // a friend's team: a trainer's
         }
-        if (!won) { n = n / 10; }           // a lost battle: a tenth of what winning it pays
         if (n < 1) { n = 1; }
+        $.expSolo = true;                 // a battle's EXP is the fighter's own: no team share
         gainExp(n);
-        save();
+        $.expSolo = false;
         return n;
     }
 
@@ -519,8 +513,9 @@ class PetModel {
         }
         if (bbVals.size() > 0) { bbNow = bbVals[0]; energy = bbNow; }   // your Body Battery right now
         claimSteps();
-        // the day's gift: 2 pieces of fruit the first time you look in a day (missed days don't add up)
-        var d = today();
+        // the day's gift: 2 pieces of fruit the first time you look after 6:00 each morning (a
+        // "gift day" runs 6:00 to 6:00; missed days don't add up)
+        var d = lastSeen == 0 ? 0 : (lastSeen + localOffset() - 6 * 3600) / 86400;
         if (!isEgg() && d > 0 && d != $.giftDay) {
             $.giftDay = d;
             for (var k = 0; k < 2; k++) {
@@ -792,7 +787,19 @@ class PetModel {
         checkLearnGates();
         evolveUntil = ms() + EVOLVE_ANIM_MS;
         Sfx.vibe(Sfx.EVOLVE);
-        say(SpriteIndex.name(prevDex) + Tr.t(" evolved into ") + SpriteIndex.name(dex) + "!", 4000);
+        // how it was looked after decides how it grows (Tamagotchi's rule): great care (2 care
+        // mistakes or fewer this stage, bond 50+) makes it stronger; each stage is judged anew
+        var note = "";
+        if (careMistakes <= 2 && bond >= 50) {
+            trAtk = min(trAtk + 3, trMaxFor(ivAtk));
+            trDef = min(trDef + 3, trMaxFor(ivDef));
+            trSpe = min(trSpe + 3, trMaxFor(ivSpe));
+            note = " " + Tr.t("Great care made it stronger!");
+        } else if (careMistakes >= 10) {
+            note = " " + Tr.t("Better care would have made it stronger.");
+        }
+        careMistakes = 0;
+        say(SpriteIndex.name(prevDex) + Tr.t(" evolved into ") + SpriteIndex.name(dex) + "!" + note, 6000);
         checkMedals();
         save();
     }
@@ -1178,7 +1185,8 @@ class PetModel {
             var before = joy;
             joy = clamp100(joy + jg);
             repJoy += joy - before;
-            var pts = m / 5 > 12 ? 12 : m / 5;
+            // slow and steady, like VO2 max: +1, and 1 more per half hour, at most +4 a workout
+            var pts = 1 + m / 30 > 4 ? 4 : 1 + m / 30;
             var sp = got[i][0];
             var label = Tr.t("WORKOUT");
             var gain = "";
@@ -1273,11 +1281,19 @@ class PetModel {
 
     // Stats of a team member (the pet, or a party member [dex, nick, shiny, level, ivAtk, ivDef,
     // ivSpe, ivHp, trAtk, trDef, trSpe, moves, bond?]): [HP, ATK, DEF, SP.ATK, SP.DEF, SPEED].
+    // [HP, ATK, DEF, SP.ATK, SP.DEF, SPE], its nature included
     function memberStats(m) {
         var r = Dex.row(m[0]);
         var l = m[3];
-        return [Battle.stat(r[3], m[7], l, 10), Battle.stat(r[4], m[4], l, m[8]), Battle.stat(r[5], m[5], l, m[9]),
-                Battle.stat(r[7], m[4], l, m[8]), Battle.stat(r[8], m[5], l, m[9]), Battle.stat(r[6], m[6], l, m[10])];
+        var st = [Battle.stat(r[3], m[7], l, 10), Battle.stat(r[4], m[4], l, m[8]), Battle.stat(r[5], m[5], l, m[9]),
+                  Battle.stat(r[7], m[4], l, m[8]), Battle.stat(r[8], m[5], l, m[9]), Battle.stat(r[6], m[6], l, m[10])];
+        var n = Battle.natureOf(m[4], m[5], m[6], m[7]);
+        var at = [1, 2, 5, 3, 4];
+        if (n / 5 != n % 5) {
+            st[at[n / 5]] = st[at[n / 5]] * 11 / 10;
+            st[at[n % 5]] = st[at[n % 5]] * 9 / 10;
+        }
+        return st;
     }
 
     // The pet in the party-member shape (bond last), for the team screens.
@@ -1427,10 +1443,10 @@ class PetModel {
 
     // ---------- training games (TamaPoke's trainStrength / trainSpeed / playResult) ----------
 
-    // Training bag: 3 points = 1 STRENGTH, at most +18 a session, under the IV ceiling.
+    // Training bag: 12 points = 1 STRENGTH, at most +3 a session (the first 3 games a day), under the IV ceiling.
     function trainStrength(hits) {
         if (!canAct()) { return 0; }
-        var gain = min(hits / 3, 18);
+        var gain = Extra.gameGain(min(hits / 12, 3));
         var before = trAtk;
         trAtk = min(trAtk + gain, trMaxFor(ivAtk));
         gain = trAtk - before;
@@ -1448,7 +1464,7 @@ class PetModel {
     // Dodge run: 2 points = 1 SPEED, at most +18 a session.
     function trainSpeed(hits) {
         if (!canAct()) { return 0; }
-        var gain = min(hits / 2, 18);
+        var gain = Extra.gameGain(min(hits / 8, 3));
         var before = trSpe;
         trSpe = min(trSpe + gain, trMaxFor(ivSpe));
         gain = trSpe - before;
@@ -1465,7 +1481,7 @@ class PetModel {
     // Brace and block: 5 points = 3 DEFENSE (at most +18) and joy: 5, plus 2 a point (max +35).
     function playResult(score) {
         if (!canAct()) { return 0; }
-        var gain = min(score * 3 / 5, 18);
+        var gain = Extra.gameGain(min(score / 6, 3));
         var before = trDef;
         trDef = min(trDef + gain, trMaxFor(ivDef));
         gain = trDef - before;

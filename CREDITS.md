@@ -10,6 +10,12 @@ The dock (bars, buttons, colours and the apple / moon / water drop / dumbbell ic
 from TamaPoke's drawBars() / drawButtons() and species.h, same licence.
 TamaPoke's battle backgrounds are not used: their provenance is unknown.
 
+## Route Crossing
+
+The lane rules of the Route Crossing game (which kinds of lanes, a clear way through, lily pads and
+railways) follow Evan Bacon's expo-crossy-road (https://github.com/evanbacon/expo-crossy-road, MIT).
+Its drawings are TamaWatch's own.
+
 ## Sprites
 
 Pokemon sprites (normal and shiny) from the PMD SpriteCollab project (https://sprites.pmdcollab.org), licensed CC BY-NC 4.0. Front-facing frames were cropped, scaled and re-packed for the watch.

@@ -55,6 +55,17 @@ watch models.
 - **A result screen after every battle**, won or lost: your creature and the rival side by side
   (team dots when several fought), then the EXP, level, HP, food and turns. A lost battle pays a
   tenth of the EXP winning it would have.
+- **Natures, a bag and rematches.** Every creature has one of 25 natures (+10% to one stat, -10% to
+  another). In battle, fruit from the BAG heals or cures (it takes the turn). Each creature that
+  beats a foe earns its EXP. Beaten gym leaders come back stronger after two days, and a rival,
+  KAI, turns up every few days with a team that grows with you.
+- **Slow and steady training.** Stats grow like your own fitness: a workout adds 1 point plus 1 per
+  half hour (at most 4), a training game up to 3 (the first 3 a day). Great care until it evolves
+  adds 3 to each stat.
+- **Route Crossing.** The defence training game: hop your trainer as far as you can across grass,
+  paths full of wild creatures, rivers and railways. It gets faster the further you go and only
+  ends when you're hit or fall in. (Its lane rules follow Evan Bacon's MIT-licensed
+  expo-crossy-road; the art is our own.)
 - **Trading.** Swap team members with a friend who plays the same region (a creature only lives
   in its own region; the watch explains this if your regions differ).
 - **7 languages:** Català, Deutsch, English, Español, Français, Italiano, Português.
