@@ -805,6 +805,8 @@ class BattleView extends WatchUi.View {
         if (back != null) {
             dc.setClip(0, 4, w, 150);
             dc.drawBitmap(0, 4 - (backNight ? 150 : 0), back);
+            dc.setClip(0, 0, w, 4);                  // the screen's top edge: the same sky (no black strip)
+            dc.drawBitmap(0, -(backNight ? 150 : 0), back);
             dc.clearClip();
         }
         dc.setColor(UI_BG_DAY, Graphics.COLOR_TRANSPARENT);

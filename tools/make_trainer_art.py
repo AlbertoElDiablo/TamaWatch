@@ -6,8 +6,10 @@ written; the right half mirrors it. No gender symbols.
 
 usage: python3 make_trainer_art.py <TamaWatch>
 """
-import os, sys
+import json, os, sys
 from PIL import Image
+
+WILD = 10           # Route Crossing's wild creatures (MiniGame.mc WILD)
 
 APP = sys.argv[1]
 S = 3
@@ -129,11 +131,38 @@ for c, x in ((33, 0), (34, lg.width // 2 - 24), (35, lg.width - 48)):
 # the lower 48 rows of its 72-row cell above (all a cell holds, but the two big trainers), and the
 # big trainers' top 24 rows in two cells after the rest (36: the boy's, 37: the girl's), on their
 # floor. Trainer.mc's drawKid puts them back together; MiniGame draws cell rows 24-71 of before.
-packed = Image.new("RGBA", (38 * 48, 48), (0, 0, 0, 0))
+packed = Image.new("RGBA", ((38 + 2 * WILD) * 48, 48), (0, 0, 0, 0))
 packed.paste(img.crop((0, 24, 36 * 48, 72)), (0, 0))
 for g in range(2):
     packed.paste(img.crop((g * 48, 0, g * 48 + 48, 24)), ((36 + g) * 48, 24))
 img = packed
+
+# Route Crossing's wild creatures, baked in here so the game makes no picture while it runs (painting
+# them into off-screen bitmaps mid-run crashed the fenix 6): WILD of the region's common species
+# (resources/jsondata, so run this after make_region), each from its glance runs (colour << 18 |
+# y << 12 | x << 6 | length) enlarged to about the trainer's height (48, at most 2x), on its cell's
+# floor: cell 38 + 2i facing left (as drawn), 39 + 2i facing right.
+jd = os.path.join(APP, "resources", "jsondata")
+dex = json.load(open(os.path.join(jd, "dex.json")))
+pick = [n for n in range(1, len(dex) + 1) if dex[n - 1][2] == 1]           # commons
+pick += [n for n in range(1, len(dex) + 1) if dex[n - 1][2] in (0, 2)]     # (too few: others)
+pick = sorted(pick[:max(WILD, len([1 for r in dex if r[2] == 1]))])
+pick = [pick[i * len(pick) // WILD] for i in range(WILD)]
+for i, n in enumerate(pick):
+    runs = json.load(open(os.path.join(jd, "d%03d.json" % n)))["g"]
+    im = Image.new("RGBA", (64, 64), (0, 0, 0, 0))
+    for v in runs:
+        c = (v >> 18) & 63
+        col = (((c >> 4) & 3) * 85, ((c >> 2) & 3) * 85, (c & 3) * 85, 255)
+        y, x, ln = (v >> 12) & 63, (v >> 6) & 63, v & 63
+        for j in range(ln):
+            im.putpixel((x + j, y), col)
+    im = im.crop(im.getbbox())
+    k = min(2.0, 48.0 / max(im.size))
+    im = im.resize((max(1, int(im.width * k)), max(1, int(im.height * k))), Image.NEAREST)
+    for f, fr in enumerate((im, im.transpose(Image.FLIP_LEFT_RIGHT))):
+        img.alpha_composite(fr, ((38 + 2 * i + f) * 48 + (48 - fr.width) // 2, 48 - fr.height))
+print("wild", pick)
 
 d = os.path.join(APP, "resources", "drawables", "kids")
 os.makedirs(d, exist_ok=True)

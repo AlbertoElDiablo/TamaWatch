@@ -216,6 +216,7 @@ for f in os.listdir(jd):
 run("make_sprites.py", SC, APP)
 run("make_moves.py", SRC, APP)
 run("make_glance_thumbs.py", SC, APP)
+run("make_trainer_art.py", APP)                 # Route Crossing's wild creatures: this region's
 run("make_sprite_centres.py", APP)
 run("make_thumbs.py", SC, APP)
 run("make_thumb_centres.py", APP)

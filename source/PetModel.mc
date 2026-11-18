@@ -333,7 +333,7 @@ class PetModel {
 
     function say(text, forMs) {
         toast = text;
-        toastUntil = ms() + forMs;
+        toastUntil = ms() + (forMs < 3000 ? forMs : 3000);     // every message gone within 3 s
     }
     function toastText() { return ms() < toastUntil ? toast : null; }
 

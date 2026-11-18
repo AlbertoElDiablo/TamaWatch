@@ -79,6 +79,7 @@ class PetView extends WatchUi.View {
 
     function onShow() {
         wake();
+        promptWas = null;                   // its prompt shows again for 3 s
         Sfx.screenOk = true;                // vibration is allowed on the main screen
         model.screenOff = true;     // replay the closed time as "screen off", then wake
         model.update();             // the first slice now, so the first frame knows if it is catching up
@@ -101,6 +102,7 @@ class PetView extends WatchUi.View {
     }
 
     var reportChecked = false;
+    var opened = false;         // the app's opening check done (the report shows only then)
     var setupOpen = false;
     var lastUpdate = -100000;
     var lastInput = 0;
@@ -145,12 +147,17 @@ class PetView extends WatchUi.View {
                 }
             } else if (!reportChecked) {
                 reportChecked = true;
-                if (model.hasReport()) {
+                // the welcome-back report only when the app opens; back from a battle, a game or
+                // a menu, what came meanwhile (steps walked during a battle...) is not news
+                var first = !opened;
+                opened = true;
+                if (first && model.hasReport()) {
                     var rv = new ReportView(model);
                     model.clearReport();
-                    WatchUi.pushView(rv, new CloseDelegate(), WatchUi.SLIDE_UP);
+                    WatchUi.pushView(rv, new CloseDelegate(), WatchUi.SLIDE_IMMEDIATE);
                     return;
                 }
+                if (!first) { model.clearReport(); }
             }
         }
         var wait = 400;
@@ -247,7 +254,13 @@ class PetView extends WatchUi.View {
         syncSprite();
         dc.setColor(Graphics.COLOR_WHITE, Graphics.COLOR_BLACK);
         dc.clear();
-        if (model.catchingUp) {
+        if (!opened && model.ceremony == model.CER_NONE) {
+            // opening: the welcome screen first (its report comes over it without a slide), never
+            // the home screen and partner before it
+            drawDisc(dc, Tr.t("WELCOME!"));
+            dc.setColor(TEXT_GREY, Graphics.COLOR_TRANSPARENT);
+            dc.drawText(w / 2, h / 2 - 10, Graphics.FONT_XTINY, Tr.t("Catching up..."), Graphics.TEXT_JUSTIFY_CENTER);
+        } else if (model.catchingUp) {
             drawCatchingUp(dc, w, h);
         } else if (model.starterPick) {
             drawStarterSelect(dc, w, h);
@@ -389,7 +402,7 @@ class PetView extends WatchUi.View {
         if (model.bathing()) { drawBubbles(dc, cx); }
 
         var msg = model.toastText();
-        if (msg == null) { msg = promptText(); }
+        if (msg == null) { msg = promptShown(); }
         if (msg != null) { drawBanner(dc, cx, msg); }
 
         drawDock(dc, w, h);
@@ -476,6 +489,18 @@ class PetView extends WatchUi.View {
     }
 
     // A decision waiting for you: opened from the menu (hold UP).
+    // A prompt shows for 3 s when it comes up (and again each time the home screen comes back);
+    // what it offers stays there behind Hold UP.
+    var promptWas = null;
+    var promptAt = 0;
+    function promptShown() {
+        var p = promptText();
+        if (p == null) { promptWas = null; return null; }
+        var now = System.getTimer();
+        if (promptWas == null || !promptWas.equals(p)) { promptWas = p; promptAt = now; }
+        return now - promptAt < 3000 ? p : null;
+    }
+
     function promptText() {
         if (model.wantEvolveButton()) { return Tr.t("Ready to evolve! Hold UP"); }
         if (model.wantFarewellButton()) { return Tr.t("Time to say goodbye. Hold UP"); }

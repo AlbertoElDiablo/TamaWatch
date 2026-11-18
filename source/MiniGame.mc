@@ -78,7 +78,6 @@ class MiniGameView extends WatchUi.View {
             if (petView != null) { petView.shed(); }   // home's pictures aren't needed here: room for the route's
             kids = WatchUi.loadResource(Rez.Drawables.kids);
             RouteArt.make();            // the ground's first strip (one a frame: see drawCross)
-            fresh = true;
         }
         timer = Ticker.take(0);                   // (a reused timer: see Ticker)
         Ticker.t[0].start(method(:tick), 50, true);
@@ -231,6 +230,7 @@ class MiniGameView extends WatchUi.View {
     const TOP = 5;                        // the field's top on screen (9 lanes fill the round screen)
     const LANES = 9;
     const STAND = 6;                      // the screen lane it stands on (0 top .. 8)
+    const WILD = 10;                      // wild creatures in kids.png (make_trainer_art.py WILD)
 
     // Lanes are made in order, a few ahead. Kinds (after expo-crossy-road's rows, MIT, by Evan
     // Bacon): 0 grass (trees block), 1 path (wild creatures dash across), 2 river with drifting
@@ -270,12 +270,21 @@ class MiniGameView extends WatchUi.View {
         if (kind == 0) {
             // Grass.treeGen: walking the columns, each (but the middle one) gets a rock or tree four
             // times in ten, until 1-3 stand; a lily pad just behind keeps its column open
+            // ... never walling off a pocket: a tree stands only at an edge or next to another one
+            // towards it, so every open square of the row reaches the middle column sideways (a
+            // trainer can't get stuck between trees with the row ahead blocked)
             if (k >= 2) {
                 var count = 1 + rnd(3) + h / 50;
                 var n = 0;
-                for (var c = 0; c < COLS && n < count; c++) {
-                    if (c == 2 || (prev != null && prev[0] == 3 && bush(prev, c))) { continue; }
-                    if (rnd(10) >= 6) {
+                var blocked = [false, false, false, false, false, false];
+                var order = [0, 5, 1, 4, 3];
+                for (var j = 0; j < order.size() && n < count; j++) {
+                    var c = order[j];
+                    if (prev != null && prev[0] == 3 && bush(prev, c)) { continue; }
+                    if (c == 1 && !blocked[0]) { continue; }
+                    if ((c == 4 && !blocked[5]) || (c == 3 && !blocked[4])) { continue; }
+                    if (rnd(10) >= 4) {
+                        blocked[c] = true;
                         items.add([c * CW, CW, rnd(10) < 4 ? rnd(4) : 4 + rnd(8)]);   // 40 % rocks
                         n++;
                     }
@@ -322,12 +331,7 @@ class MiniGameView extends WatchUi.View {
             var x = rnd(PERIOD);
             var cars = 1 + rnd(2) + (rnd(100) < h / 2 ? 1 : 0);
             for (var i = 0; i < cars; i++) {
-                var who = 1;
-                for (var t = 0; t < 10; t++) {
-                    who = 1 + rnd(Dex.COUNT);
-                    if (Dex.rarity(who) != Dex.R_LEGEND) { break; }
-                }
-                items.add([(x % PERIOD).toFloat(), 40, who, null, null, 0, null]);   // (its big picture: see creature)
+                items.add([(x % PERIOD).toFloat(), 40, rnd(WILD)]);     // which wild creature (see things)
                 x += 120 + rnd(73);
             }
         }
@@ -418,6 +422,22 @@ class MiniGameView extends WatchUi.View {
         lastHop = System.getTimer();
         if (next[0] != 2) { px = (col * CW + CW / 2).toFloat(); }   // off the logs: back on the grid
         if (row > score) { score = row; }
+    }
+
+    // BACK: one lane back (up to 3 behind the furthest: the lanes further back are gone), facing
+    // the way it walks; a bush in the way: it stays
+    function stepBack() {
+        if (done || crashed || row <= 0 || row <= score - 3) { return; }
+        var prev = laneAt(row - 1);
+        var col = (px / CW).toNumber();
+        if (col > COLS - 1) { col = COLS - 1; }
+        if (col < 0) { col = 0; }
+        face = 0;
+        steps += 1;
+        if (prev[0] == 0 && bush(prev, col)) { return; }
+        row -= 1;
+        lastHop = System.getTimer();
+        if (prev[0] != 2) { px = (col * CW + CW / 2).toFloat(); }   // off the logs: back on the grid
     }
 
     function sidestep(d) {
@@ -540,8 +560,6 @@ class MiniGameView extends WatchUi.View {
 
     // The route (RouteArt.mc): ground strips painted once, the things on it drawn with shading,
     // your partner and the wild creatures as their thumbnails with a shadow under them.
-    var fresh = true;           // a run's first frame to come
-    var budget = 0;             // runs of the creatures' big pictures still to paint this frame
     function drawCross(dc, cx) {
         if (!RouteArt.make()) {
             // the ground is still being painted (a strip a frame, a quarter of a second): grass
@@ -549,8 +567,6 @@ class MiniGameView extends WatchUi.View {
             dc.clear();
             return;
         }
-        budget = fresh ? 0 : 60;                          // (none in a run's first frame: its lanes are made)
-        fresh = false;
         var x0 = cx - FIELD_W / 2;
         var now = System.getTimer();
         for (var s = LANES; s >= -1; s--) {              // (and one more past each edge)
@@ -589,70 +605,6 @@ class MiniGameView extends WatchUi.View {
         }
     }
 
-    // A wild creature's big picture (item [x, w, who, picture, runs left to paint, next run,
-    // [width, height, left, top, scale in eighths]]): its glance runs (make_glance_thumbs.py:
-    // colour << 18 | y << 12 | x << 6 | length, at its natural size) enlarged to about the
-    // trainer's height (48, at most 2x like the trainer), cropped to its outline, facing the way
-    // it runs (they face left: flipped when it heads right). Painted a few dozen runs a frame
-    // (all at once trips the watchdog); until it is done only its shadow shows (no thumbnail atlas: it would
-    // hold 150 creatures' thumbnails in memory for one picture).
-    function creature(it, flip) {
-        if (budget <= 0) { return; }
-        if (it[3] == null) {
-            var runs = (WatchUi.loadResource(SpriteIndex.data(it[2])) as Dictionary)["g"];
-            var pal = [Graphics.COLOR_TRANSPARENT];
-            var seen = {};
-            var l = 63; var t = 63; var r = 0; var b = 0;
-            for (var i = 0; i < runs.size(); i++) {
-                var v = runs[i];
-                var c = (v >> 18) & 63;
-                if (!seen.hasKey(c)) { seen.put(c, true); pal.add(((c >> 4) & 3) * 0x550000 + ((c >> 2) & 3) * 0x5500 + (c & 3) * 0x55); }
-                var ry = (v >> 12) & 63;
-                var rx = (v >> 6) & 63;
-                if (rx < l) { l = rx; }
-                if (rx + (v & 63) > r) { r = rx + (v & 63); }
-                if (ry < t) { t = ry; }
-                if (ry + 1 > b) { b = ry + 1; }
-            }
-            var big = (r - l > b - t ? r - l : b - t);
-            var k = big > 0 ? 48 * 8 / big : 16;
-            if (k > 16) { k = 16; }
-            var w = (r - l) * k / 8;
-            var h = (b - t) * k / 8;
-            var o = {:width => RouteArt.R(w) + 1, :height => RouteArt.R(h) + 1, :palette => pal};
-            it[3] = (Graphics has :createBufferedBitmap) ? Graphics.createBufferedBitmap(o).get() : new Graphics.BufferedBitmap(o);
-            var bd = it[3].getDc();
-            bd.setColor(Graphics.COLOR_TRANSPARENT, Graphics.COLOR_TRANSPARENT);
-            bd.clear();
-            it[4] = runs;
-            it[5] = 0;
-            it[6] = [w, h, flip ? 40 - r : l, t, k];
-            budget -= 40;
-            return;
-        }
-        var runs = it[4];
-        var m = it[6];
-        var k = m[4];
-        var dc = it[3].getDc();
-        var i = it[5];
-        var end = i + budget < runs.size() ? i + budget : runs.size();
-        budget -= end - i;
-        for (; i < end; i++) {
-            var v = runs[i];
-            var c = (v >> 18) & 63;
-            var ry = ((v >> 12) & 63) - m[3];
-            var rx = (v >> 6) & 63;
-            var n = v & 63;
-            if (flip) { rx = 40 - rx - n; }
-            rx -= m[2];
-            var x0 = rx * k / 8;
-            var y0 = ry * k / 8;
-            RouteArt.rect(dc, ((c >> 4) & 3) * 0x550000 + ((c >> 2) & 3) * 0x5500 + (c & 3) * 0x55, x0, y0, (rx + n) * k / 8 - x0, (ry + 1) * k / 8 - y0);
-        }
-        it[5] = i;
-        if (i >= runs.size()) { it[4] = null; }          // done
-    }
-
     // A log w long: its two ends (kids.png cells 33 and 35) and its middle (34) repeated between.
     function log(dc, x, y, w) {
         var base = y + 5 + 18 - 72;
@@ -688,24 +640,25 @@ class MiniGameView extends WatchUi.View {
     }
 
     // The grass lanes' rocks, trees and bushes (kids.png cells 18-29, at 2x) in rows s0..s1.
-    // ... and the roads' wild creatures, standing over the lane behind them (their big pictures
-    // are painted a little a frame: see creature; until then only the shadow shows).
+    // ... and the paths' wild creatures, standing over the lane behind them: WILD of the region's
+    // species baked into kids.png (make_trainer_art.py: cell 38 + 2i facing left, 39 + 2i right),
+    // so nothing is loaded or made while the game runs (building their pictures mid-run, in
+    // palette bitmaps cleared to transparent, crashed the fenix 6).
     function things(dc, x0, s0, s1) {
         if (kids == null) { return; }
         for (var s = s0; s <= s1; s++) {
             var k = row + (STAND - s);
             var l = laneAt(k);
             if (l[0] == 1) {
-                dc.clearClip();                           // (not inside the last tree's box)
-                var y = TOP + s * RH;
+                var y = TOP + s * RH + RH - 1 - 48;
                 for (var i = 0; i < l[3].size(); i++) {
                     var it = l[3][i];
-                    if (it[4] != null || it[3] == null) { creature(it, l[1] > 0); }
-                    if (it[4] != null || it[3] == null) { continue; }
+                    var cell = 38 + 2 * it[2] + (l[1] > 0 ? 1 : 0);
                     for (var w = -1; w <= 1; w++) {
                         var ix = x0 + it[0].toNumber() + w * PERIOD;
                         if (ix > x0 + FIELD_W + 40 || ix + it[1] < x0 - 40) { continue; }
-                        dc.drawBitmap(ix + 20 - it[6][0] / 2, y + RH - 1 - it[6][1], it[3]);
+                        dc.setClip(ix - 4, y, 48, 48);
+                        dc.drawBitmap(ix - 4 - cell * 48, y, kids);
                     }
                 }
                 continue;
@@ -785,7 +738,8 @@ class MiniGameDelegate extends WatchUi.BehaviorDelegate {
         return true;
     }
 
-    function onBack() {                  // quit and keep what was earned
+    function onBack() {                  // Route Crossing: a lane back (on the first: quit); else quit and keep what was earned
+        if (!v.done && v.mode == v.BRACE && v.row > 0) { v.stepBack(); return true; }
         if (!v.done) { v.finish(); return true; }
         WatchUi.popView(WatchUi.SLIDE_DOWN);
         return true;
