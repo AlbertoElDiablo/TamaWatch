@@ -122,18 +122,19 @@ class MiniGameView extends WatchUi.View {
         else if (mode == DODGE) { gain = model.trainSpeed(score); }
         else { gain = model.playResult(score); }
         found = Hp.afterGame(model);
-        if (mode == BRACE) {
-            // Route Crossing keeps its furthest run
-            var b = Application.Storage.getValue("rcBest");
+        if (mode != DODGE) {
+            // Route Crossing keeps its furthest run, the training bag its highest score
+            var key = mode == BRACE ? "rcBest" : "bagBest";
+            var b = Application.Storage.getValue(key);
             best = b instanceof Number ? b : 0;
             if (score > best) {
                 newBest = best > 0;
                 best = score;
-                Application.Storage.setValue("rcBest", score);
+                Application.Storage.setValue(key, score);
             }
         }
     }
-    var best = -1;              // Route Crossing's record (-1: another game)
+    var best = -1;              // Route Crossing's or the training bag's record (-1: DODGE RUN)
     var newBest = false;        // ... just beaten
     var found = -1;             // the fruit found during the game (-1: none)
 
