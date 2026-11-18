@@ -11,6 +11,23 @@ watch models.
 > The Pokémon Company or Garmin. Pokémon names and characters are © Nintendo / Game Freak / The
 > Pokémon Company. Free to use; there is nothing to buy.
 
+## Screens
+
+Captured from the Connect IQ simulator on a fēnix 6 Pro (its 64-colour screen).
+
+<table>
+<tr>
+<td align="center"><img src="docs/screens/home.png" width="230" alt="Home screen: the partner in its scene, with its needs and the dock"><br><b>Home</b>: your partner, its needs and the dock</td>
+<td align="center"><img src="docs/screens/trainer.png" width="230" alt="Trainer card"><br><b>Trainer card</b>: your character, active minutes, medals, badges and team</td>
+<td align="center"><img src="docs/screens/battle.png" width="230" alt="A wild battle"><br><b>Battles</b>: wild creatures, gyms, the rival and friends</td>
+</tr>
+<tr>
+<td align="center"><img src="docs/screens/training-bag.png" width="230" alt="Training Bag in the gym"><br><b>Training Bag</b> (strength): hit the swinging bag on the line</td>
+<td align="center"><img src="docs/screens/sprint-start.png" width="230" alt="Sprint Start on the stadium track"><br><b>Sprint Start</b> (speed): react to the green light</td>
+<td align="center"><img src="docs/screens/route-crossing.png" width="230" alt="Route Crossing"><br><b>Route Crossing</b> (defence): hop as far as you can</td>
+</tr>
+</table>
+
 ## What it does
 
 - **Your activity raises it.** Every 50 steps give it 1 EXP and every 5,000 steps an apple (steps add
@@ -63,10 +80,19 @@ watch models.
   30-minute one about a quarter of a point at first), a good training game a quarter of that (4 a
   day count), gym wins some too; each point takes a little longer than the last, with no fixed
   ceiling. Great care until it evolves adds 3 to each stat.
-- **Route Crossing.** The defence training game: hop your trainer as far as you can across grass,
-  paths full of wild creatures, rivers and railways. It gets faster the further you go and only
-  ends when you're hit or fall in. (Its lane rules follow Evan Bacon's MIT-licensed
-  expo-crossy-road; the art is our own.)
+- **Three training games**, each with a recap of your points, your best and the training gained:
+  - **Training Bag** (strength): in a pixel-art gym, press START as the swinging punching bag
+    crosses the line; PERFECT and GOOD hits in a row add up, and the swing speeds up.
+  - **Sprint Start** (speed): a best-of-5 race against a rival on a stadium track. Press START the
+    moment the light turns green; the quicker reaction gets off the line first and wins the heat.
+    Too early (or under 0.1 s) is a false start.
+  - **Route Crossing** (defence): hop your trainer as far as you can across grass, paths full of
+    wild creatures, rivers and railways. It gets faster the further you go and only ends when
+    you're hit or fall in. (Its lane rules follow Evan Bacon's MIT-licensed expo-crossy-road; the
+    art is our own.)
+- **A nudge to move on workdays.** Weekdays 9:00-17:00, if you've walked under 400 steps in an hour
+  and a half, your partner asks for a 3-4 minute walk. It uses the check the app already runs every
+  15 minutes, so it costs no extra battery.
 - **Trading.** Swap team members with a friend who plays the same region (a creature only lives
   in its own region; the watch explains this if your regions differ).
 - **7 languages:** Català, Deutsch, English, Español, Français, Italiano, Português.
