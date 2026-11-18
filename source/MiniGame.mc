@@ -8,7 +8,9 @@ import Toybox.WatchUi;
 
 // TamaPoke's three training games, with taps turned into the watch's buttons:
 //   BAG   (STRENGTH, 10 s)  START as the swinging bag crosses the line
-//   DODGE (SPEED, 15 s)     UP / DOWN move the creature between three lanes
+//   SPRINT (SPEED)          a best-of-5 sprint start against a rival: START the moment the light
+//                           turns green (before it: a false start, the heat lost); the quicker
+//                           reaction gets off the line first and wins the heat
 //   ROUTE (DEFENSE)         START hops forward, UP / DOWN step left / right: cross grass (trees
 //                           and boulders block), paths (wild creatures dash by), rivers (ride the
 //                           logs, hop the lily pads) and railways; a point a lane, faster and
@@ -17,9 +19,9 @@ import Toybox.WatchUi;
 class MiniGameView extends WatchUi.View {
 
     const BAG = 0;
-    const DODGE = 1;
+    const SPRINT = 1;
     const BRACE = 2;
-    const NAMES = ["TRAINING BAG", "DODGE RUN", "ROUTE CROSSING"];
+    const NAMES = ["TRAINING BAG", "SPRINT START", "ROUTE CROSSING"];
     const LENGTH_MS = [10000, 15000, 30000];
 
     var model;
@@ -41,11 +43,29 @@ class MiniGameView extends WatchUi.View {
     var passScored = false;
     var lockUntil = 0;
 
-    // dodge
-    var lane = 1;
-    var rows = [];        // [y, mask, resolved]
-    var nextRowAt = 0;
-    var stunUntil = 0;
+    // sprint start: the heat's state and when it began; the light's yellow (random) length; when it
+    // turned green; the rival's and your reaction (ms; -1 not yet); a false start; heats won and
+    // lost; your best clean reaction; what the heat came to (shown under the track)
+    const S_READY = 0;
+    const S_RED = 1;
+    const S_YELLOW = 2;
+    const S_GO = 3;
+    const S_RESULT = 4;
+    const RUN_MS = 1100;          // a runner's dash from the line to the finish
+    var st = 0;
+    var stAt = 0;
+    var yellowMs = 0;
+    var greenAt = 0;
+    var aiMs = 0;
+    var myMs = -1;
+    var foul = false;
+    var slow = false;
+    var heat = 0;
+    var wins = 0;
+    var losses = 0;
+    var bestMs = -1;
+    var heatWon = false;
+    var sprint = null;            // the track, the light and the rail (tools/make_sprint_art.py)
 
     // route crossing: the lanes, by number from the start (0, 1 grass); each [kind, direction,
     // speed px/s, [[x, width], ...]]; kind 0 grass (items: bushes, by column), 1 path (items
@@ -73,13 +93,14 @@ class MiniGameView extends WatchUi.View {
     function onShow() {
         t0 = System.getTimer();
         last = t0;
-        nextRowAt = t0 + 600;
+        stAt = t0;
         nextOrbAt = t0 + 800;
-        if (mode == BRACE) {
-            if (petView != null) { petView.shed(); }   // home's pictures aren't needed here: room for the route's
+        if (mode == BRACE || mode == SPRINT) {
+            if (petView != null) { petView.shed(); }   // home's pictures aren't needed here: room for these
             kids = WatchUi.loadResource(Rez.Drawables.kids);
-            RouteArt.make();            // the ground's first strip (one a frame: see drawCross)
         }
+        if (mode == BRACE) { RouteArt.make(); }         // the ground's first strip (one a frame: see drawCross)
+        if (mode == SPRINT) { sprint = WatchUi.loadResource(Rez.Drawables.sprint); }
         if (mode == BAG) { gym = WatchUi.loadResource(Rez.Drawables.gym); }   // loaded once, here: never mid-game
         timer = Ticker.take(0);                   // (a reused timer: see Ticker)
         Ticker.t[0].start(method(:tick), 50, true);
@@ -91,6 +112,7 @@ class MiniGameView extends WatchUi.View {
         RouteArt.clear();
         kids = null;
         gym = null;
+        sprint = null;
     }
 
     function rnd(n) { return Math.rand().abs() % n; }
@@ -102,9 +124,9 @@ class MiniGameView extends WatchUi.View {
         last = now;
         if (!done) {
             if (mode == BAG) { bagStep(dt); }
-            else if (mode == DODGE) { dodgeStep(now); }
+            else if (mode == SPRINT) { sprintStep(now); }
             else { crossStep(dt); }
-            if (mode != BRACE && elapsed() >= LENGTH_MS[mode]) { finish(); }   // the route ends only on a fall
+            if (mode == BAG && elapsed() >= LENGTH_MS[mode]) { finish(); }   // the others end themselves
         }
         WatchUi.requestUpdate();
     }
@@ -119,10 +141,13 @@ class MiniGameView extends WatchUi.View {
         if (done) { return; }
         done = true;
         if (mode == BAG) { gain = model.trainStrength(score); }
-        else if (mode == DODGE) { gain = model.trainSpeed(score); }
+        else if (mode == SPRINT) {
+            if (wins >= 3) { score += 10; }                 // the match won
+            gain = model.trainSpeed(score);
+        }
         else { gain = model.playResult(score); }
         found = Hp.afterGame(model);
-        if (mode != DODGE) {
+        if (mode != SPRINT) {
             // Route Crossing keeps its furthest run, the training bag its highest score
             var key = mode == BRACE ? "rcBest" : "bagBest";
             var b = Application.Storage.getValue(key);
@@ -134,14 +159,14 @@ class MiniGameView extends WatchUi.View {
             }
         }
     }
-    var best = -1;              // Route Crossing's or the training bag's record (-1: DODGE RUN)
+    var best = -1;              // Route Crossing's or the training bag's record (-1: SPRINT START)
     var newBest = false;        // ... just beaten
     var found = -1;             // the fruit found during the game (-1: none)
 
     // the stat this game trains is already as high as its IV allows
     function statFull() {
         if (mode == BAG) { return model.trAtk >= model.trMaxFor(model.ivAtk); }
-        if (mode == DODGE) { return model.trSpe >= model.trMaxFor(model.ivSpe); }
+        if (mode == SPRINT) { return model.trSpe >= model.trMaxFor(model.ivSpe); }
         return model.trDef >= model.trMaxFor(model.ivDef);
     }
 
@@ -185,43 +210,63 @@ class MiniGameView extends WatchUi.View {
         say(text);
     }
 
-    // ---------- dodge: rows fall faster and closer together ----------
+    // ---------- sprint start ----------
+    // Each heat: HEAT n (0.9 s), red (0.7 s), yellow (0.5-1.8 s, so green can't be counted on), green:
+    // START now. The rival reacts in 230-400 ms, a little quicker each heat (182-352 by the fifth);
+    // the runners leave the line at green plus their reaction and take RUN_MS to the finish, so the
+    // quicker reaction wins (yours on a tie). No press within a second: TOO SLOW (the heat lost).
+    // START before green, or within 100 ms of it (a guess, as in athletics): a false start, the heat
+    // lost. First to 3 heats.
+    // Points: a heat won 10, plus 6 under 200 ms, 4 under 250, 2 under 300; a false start -5; the
+    // match won +10 (at the end); never below 0.
 
-    function dodgeStep(now) {
-        var k = elapsed() * 1.0 / LENGTH_MS[DODGE];
-        var speed = 0.096 + 0.084 * k;                  // px/ms (TamaPoke's 0.16 -> 0.30 at 466 px)
-        for (var i = 0; i < rows.size(); i++) {
-            var r = rows[i];
-            r[0] = r[0] + speed * 50;
-            if (!r[2] && r[0] >= 196) {                  // reaches the creature
-                r[2] = true;
-                if (((r[1] >> lane) & 1) == 1 && now >= stunUntil) {
-                    stunUntil = now + 400;
-                    streak = 0;
-                    say(Tr.t("CRASH!"));
-                } else if (now >= stunUntil) {
-                    streak++;
-                    var bonus = streak / 3;
-                    if (bonus > 2) { bonus = 2; }
-                    score += 3 + bonus;
-                }
-            }
-        }
-        while (rows.size() > 0 && rows[0][0] > 260) { rows = rows.slice(1, null); }
-        if (now >= nextRowAt) {
-            var mask;
-            if (rnd(100) < 70) { mask = 1 << rnd(3); }
-            else { var open = rnd(3); mask = 7 & ~(1 << open); }   // two blocked, one open
-            rows.add([40.0, mask, false]);
-            nextRowAt = now + (1300 - 350 * k).toNumber();
+    function sprintStep(now) {
+        if (st == S_READY && now - stAt >= 900) { st = S_RED; stAt = now; }
+        else if (st == S_RED && now - stAt >= 700) { st = S_YELLOW; stAt = now; yellowMs = 500 + rnd(1300); }
+        else if (st == S_YELLOW && now - stAt >= yellowMs) {
+            st = S_GO; stAt = now; greenAt = now;
+            aiMs = 230 + rnd(171) - heat * 12;
+        } else if (st == S_GO) {
+            if (myMs < 0 && !foul && now - greenAt >= 1000) { myMs = 1000; slow = true; }   // too slow
+            var mine = foul ? 0 : myMs;
+            if (mine >= 0 && now >= greenAt + (aiMs > mine ? aiMs : mine) + RUN_MS) { heatOver(now); }
+        } else if (st == S_RESULT && now - stAt >= 1500) {
+            if (wins >= 3 || losses >= 3) { finish(); return; }
+            heat++;
+            st = S_READY; stAt = now;
+            myMs = -1; foul = false; slow = false;
         }
     }
 
-    function dodgeMove(d) {
-        if (System.getTimer() < stunUntil) { return; }
-        lane = lane + d;
-        if (lane < 0) { lane = 0; }
-        if (lane > 2) { lane = 2; }
+    function sprintPress() {
+        var now = System.getTimer();
+        if (st == S_RED || st == S_YELLOW) {
+            foul = true;                       // the rival goes on its own
+            st = S_GO; stAt = now; greenAt = now; aiMs = 250;
+        } else if (st == S_GO && !foul && myMs < 0) {
+            myMs = now - greenAt;
+            if (myMs < 100) {                  // quicker than anyone can react: it was guessed (as in athletics)
+                foul = true; myMs = -1;
+            }
+        }
+    }
+
+    function heatOver(now) {
+        st = S_RESULT; stAt = now;
+        heatWon = !foul && !slow && myMs <= aiMs;
+        if (heatWon) {
+            wins++;
+            score += 10 + (myMs < 200 ? 6 : (myMs < 250 ? 4 : (myMs < 300 ? 2 : 0)));
+        } else {
+            losses++;
+            if (foul) { score = score > 5 ? score - 5 : 0; }
+        }
+        if (!foul && !slow && (bestMs < 0 || myMs < bestMs)) { bestMs = myMs; }
+    }
+
+    // a reaction as seconds: 0.231 s
+    function secs(ms) {
+        return (ms / 1000) + "." + (ms % 1000).format("%03d") + " s";
     }
 
     // ---------- route crossing ----------
@@ -469,6 +514,7 @@ class MiniGameView extends WatchUi.View {
         dc.setColor(BG, BG);
         dc.clear();
         if (!done && mode == BRACE) { drawCross(dc, cx); return; }         // the route fills the screen
+        if (!done && mode == SPRINT) { drawSprint(dc, cx); return; }       // ... and the track
         if (!done && gym != null) {
             dc.drawBitmap(0, 0, gym);                                    // the gym
             // a plain white sign behind the title and score (the light panel's stripes showed through)
@@ -488,7 +534,6 @@ class MiniGameView extends WatchUi.View {
         var left = (LENGTH_MS[mode] - elapsed()) / 1000;
         dc.drawText(cx, 36, Graphics.FONT_XTINY, score + Tr.t(" pts   ") + (left < 0 ? 0 : left) + "s", Graphics.TEXT_JUSTIFY_CENTER);
         if (mode == BAG) { drawBag(dc, cx); }
-        else if (mode == DODGE) { drawDodge(dc, cx); }
         else { drawCross(dc, cx); }
         if (System.getTimer() < flashUntil && !inSign) {
             dc.setColor(0xFF0000, Graphics.COLOR_TRANSPARENT);
@@ -498,8 +543,23 @@ class MiniGameView extends WatchUi.View {
 
     function drawResult(dc, cx) {
         var stat = [Tr.t("STRENGTH"), Tr.t("SPEED"), Tr.t("DEFENSE")];
-        dc.drawText(cx, 80, Graphics.FONT_MEDIUM, score + Tr.t(" points"), Graphics.TEXT_JUSTIFY_CENTER);
         var ly = 120;
+        if (mode == SPRINT) {
+            // the match (3 - 1, won or lost), the points, your best reaction
+            dc.setColor(wins >= 3 ? 0x00AA00 : 0xFF0000, Graphics.COLOR_TRANSPARENT);
+            dc.drawText(cx, 44, Graphics.FONT_TINY, wins >= 3 ? Tr.t("YOU WIN!") : (losses >= 3 ? Tr.t("YOU LOSE") : ""), Graphics.TEXT_JUSTIFY_CENTER);
+            dc.drawText(cx, 66, Graphics.FONT_MEDIUM, wins + " - " + losses, Graphics.TEXT_JUSTIFY_CENTER);
+            dc.setColor(INK, Graphics.COLOR_TRANSPARENT);
+            dc.drawText(cx, 104, Graphics.FONT_TINY, score + Tr.t(" points"), Graphics.TEXT_JUSTIFY_CENTER);
+            dc.setColor(TEXT_GREY, Graphics.COLOR_TRANSPARENT);
+            if (bestMs >= 0) {
+                dc.drawText(cx, 130, Graphics.FONT_XTINY, Tr.f("Best reaction {0}", [secs(bestMs)]), Graphics.TEXT_JUSTIFY_CENTER);
+            }
+            dc.setColor(INK, Graphics.COLOR_TRANSPARENT);
+            ly = 150;
+        } else {
+            dc.drawText(cx, 80, Graphics.FONT_MEDIUM, score + Tr.t(" points"), Graphics.TEXT_JUSTIFY_CENTER);
+        }
         if (best >= 0) {
             // this run against the record
             dc.setColor(newBest ? 0x00AA00 : TEXT_GREY, Graphics.COLOR_TRANSPARENT);
@@ -585,24 +645,84 @@ class MiniGameView extends WatchUi.View {
         }
     }
 
-    const LANE_X = [86, 140, 194];
+    // The track, the light over it (lit lamp: red, then yellow, then green; all dark before), your
+    // runner in the top lane, the rail, the rival in the bottom lane; on a white sign below, what's
+    // happening and the heats so far.
+    function drawSprint(dc, cx) {
+        var now = System.getTimer();
+        if (sprint != null) {
+            dc.setClip(0, 0, 280, 280);
+            dc.drawBitmap(0, 0, sprint);
+            // the light
+            var lx = cx - SprintArt.LW / 2;
+            var ly = 6;
+            dc.setClip(lx, ly, SprintArt.LW, SprintArt.LH);
+            dc.drawBitmap(lx - SprintArt.DARK_X, ly - SprintArt.LIGHT_Y, sprint);
+            var on = st == S_RED || foul ? 0 : (st == S_YELLOW ? 1 : (st == S_GO || st == S_RESULT ? 2 : -1));
+            if (foul && (now / 200) % 2 == 1) { on = -1; }             // a false start: the red flashes
+            if (on >= 0) {
+                var r = SprintArt.LAMPS[on];
+                dc.setClip(lx, ly + r[0], SprintArt.LW, r[1] - r[0]);
+                dc.drawBitmap(lx - SprintArt.LIT_X, ly - SprintArt.LIGHT_Y, sprint);
+            }
+            dc.clearClip();
+        }
+        var g = model.trGender == 1 ? 1 : 0;
+        runner(dc, g, foul ? -1 : myMs, SprintArt.LANE1[1] - 12, now);
+        if (sprint != null) {                  // the rail between the lanes
+            var ry = (SprintArt.LANE1[1] + SprintArt.LANE2[0]) / 2 - SprintArt.RAIL_H / 2;
+            dc.setClip(SprintArt.START_X, ry, SprintArt.RAIL_W, SprintArt.RAIL_H);
+            dc.drawBitmap(SprintArt.START_X, ry - SprintArt.RAIL_Y, sprint);
+            dc.clearClip();
+        }
+        runner(dc, 1 - g, st >= S_GO ? aiMs : -1, SprintArt.LANE2[1] - 4, now);
+        // the sign: what's happening, then the heats
+        var line = Tr.f("HEAT {0}", [heat + 1]);
+        var col = INK;
+        if (st == S_RED || st == S_YELLOW) { line = Tr.t("WAIT..."); }
+        else if (st == S_GO) {
+            if (foul) { line = Tr.t("FALSE START!"); col = 0xFF0000; }
+            else if (myMs >= 0 && !slow) { line = secs(myMs); }
+            else if (!slow) { line = Tr.t("GO!"); col = 0x00AA00; }
+        }
+        if (st == S_RESULT) {
+            if (foul) { line = Tr.t("FALSE START!"); col = 0xFF0000; }
+            else if (slow) { line = Tr.t("TOO SLOW"); col = 0xFF0000; }
+            else { line = (heatWon ? Tr.t("WIN") : Tr.t("LOSE")) + "  " + secs(myMs); col = heatWon ? 0x00AA00 : 0xFF0000; }
+        }
+        var sw = dc.getTextWidthInPixels(line, Graphics.FONT_TINY);
+        sw = sw < 110 ? 126 : sw + 16;
+        dc.setColor(INK, Graphics.COLOR_TRANSPARENT);
+        dc.fillRoundedRectangle(cx - sw / 2 - 2, 196, sw + 4, 50, 7);
+        dc.setColor(0xFFFFFF, Graphics.COLOR_TRANSPARENT);
+        dc.fillRoundedRectangle(cx - sw / 2, 198, sw, 46, 6);
+        dc.setColor(col, Graphics.COLOR_TRANSPARENT);
+        dc.drawText(cx, 198, Graphics.FONT_TINY, line, Graphics.TEXT_JUSTIFY_CENTER);
+        dc.setColor(INK, Graphics.COLOR_TRANSPARENT);
+        dc.drawText(cx, 222, Graphics.FONT_XTINY, Tr.t("YOU") + "  " + wins + " - " + losses + "  " + Tr.t("RIVAL"), Graphics.TEXT_JUSTIFY_CENTER);
+    }
 
-    function drawDodge(dc, cx) {
-        dc.setColor(0xFF5555, Graphics.COLOR_TRANSPARENT);
-        dc.fillRectangle(60, 60, 160, 180);
-        for (var i = 0; i < rows.size(); i++) {
-            var r = rows[i];
-            for (var l = 0; l < 3; l++) {
-                if (((r[1] >> l) & 1) == 1) {
-                    dc.setColor(0xAA0000, Graphics.COLOR_TRANSPARENT);
-                    dc.fillCircle(LANE_X[l], r[0].toNumber(), 14);
-                    dc.setColor(INK, Graphics.COLOR_TRANSPARENT);
-                    dc.drawCircle(LANE_X[l], r[0].toNumber(), 14);
-                }
+    // A runner (character g) in its lane, feet on footY: on the line until green plus its reaction
+    // (react; -1: not off yet), then dashing to the finish (running frames), standing there after.
+    function runner(dc, g, react, footY, now) {
+        if (kids == null) { return; }
+        var x0 = SprintArt.START_X + 4;
+        var x1 = SprintArt.FINISH_X + 6;
+        var x = x0;
+        var frame = 0;
+        if (react >= 0 && st >= S_GO) {
+            var t = now - (greenAt + react);
+            if (st == S_RESULT) { t = RUN_MS; }
+            if (t > 0) {
+                x = x0 + (x1 - x0) * (t < RUN_MS ? t : RUN_MS) / RUN_MS;
+                if (t < RUN_MS) { frame = (t / 90) % 2; }
             }
         }
-        var stunned = System.getTimer() < stunUntil;
-        if (!stunned || (System.getTimer() / 80) % 2 == 0) { drawPet(dc, LANE_X[lane], 226); }
+        var cell = 2 + g * 8 + 3 * 2 + frame;                  // facing right (make_trainer_art.py)
+        var top = footY - 50;
+        dc.setClip(x - 20, top, 40, 50);
+        dc.drawBitmap(x - 20 - (cell * 48 + 4), top + 2, kids);
+        dc.clearClip();
     }
 
     // The route (RouteArt.mc): ground strips painted once, the things on it drawn with shading,
@@ -769,19 +889,18 @@ class MiniGameDelegate extends WatchUi.BehaviorDelegate {
     function onSelect() {
         if (v.done) { WatchUi.popView(WatchUi.SLIDE_DOWN); return true; }
         if (v.mode == v.BAG) { v.bagPress(); }
+        else if (v.mode == v.SPRINT) { v.sprintPress(); }
         else if (v.mode == v.BRACE) { v.hop(); }
         return true;
     }
 
     function onPreviousPage() {          // UP
-        if (v.mode == v.DODGE) { v.dodgeMove(-1); }
-        else if (v.mode == v.BRACE) { v.sidestep(-1); }
+        if (v.mode == v.BRACE) { v.sidestep(-1); }
         return true;
     }
 
     function onNextPage() {              // DOWN
-        if (v.mode == v.DODGE) { v.dodgeMove(1); }
-        else if (v.mode == v.BRACE) { v.sidestep(1); }
+        if (v.mode == v.BRACE) { v.sidestep(1); }
         return true;
     }
 

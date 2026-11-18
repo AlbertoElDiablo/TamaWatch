@@ -112,9 +112,11 @@ def fonts_for(folder, k, chars):
 # shrunk on its own to exactly where the app expects it (Sdc.R), and fine pixel art (1 px outlines:
 # the egg, the thumbnails) is shrunk by dropping the columns and rows that repeat their neighbour, or
 # differ least from it, never an outline. Plain nearest-neighbour dropped the egg's side outlines.
-CELLS = {"thumbs/thumbs.png": (38, 38), "thumbs/thumbs_sil.png": (38, 38), "dock/icons.png": (32, 32),
-         "badges/badges.png": (48, 48), "kids/kids.png": (48, 48), "egg/egg.png": (96, 96),
-         "gym/gym.png": None}   # (the gym room: its own path, GYM_SRC)
+CELLS = {"thumbs/thumbs.png": (38, 38), "thumbs/thumbs_sil.png": (38, 38),
+         "kids/kids.png": (48, 48), "egg/egg.png": (96, 96),
+         }
+# the badges (48 x 48) with the dock's icons under them (32 x 32: tools/merge_dock_icons.py)
+CELLS["badges/badges.png"] = [(0, 48, 48, 48), (48, 80, 32, 32)]
 
 
 def R(v, k):
@@ -167,20 +169,36 @@ def shrink_cells(im, k, cell):
     return out
 
 
-GYM_SRC = {"gym/gym.png"}
+# Pictures converted from the user's own (tools/make_gym_room.py, tools/make_sprint_art.py): each
+# resized from its undithered source (tools/<name>_src.png), then its in-between colours laid as
+# checkerboards at this size (a checkerboard resized loses its pattern: rows and columns dropped or
+# doubled). Their tools/<name>_dither.json: the placeholders' two colours, and (a dict) the parts
+# of the picture to shrink one by one.
+IMPORTED = {"gym/gym.png": "gym_room", "sprint/sprint.png": "sprint"}
 
 
-def gym_dither(im):
-    """tools/make_gym_room.py's placeholder colours as checkerboards of their two (its DITHER)."""
-    table = {tuple(a): (tuple(b), tuple(c)) for a, (b, c) in json.load(open(os.path.join(APP, "tools", "gym_room_dither.json")))}
-    im = im.convert("RGB")
+def imported(name, k, w, h):
+    info = json.load(open(os.path.join(APP, "tools", name + "_dither.json")))
+    mix, regions = (info["mix"], info.get("regions")) if isinstance(info, dict) else (info, None)
+    table = {tuple(a): (tuple(b), tuple(c)) for a, (b, c) in mix}
+    im = Image.open(os.path.join(APP, "tools", name + "_src.png")).convert("RGBA")
+    if k >= 1:
+        im = im.resize((w, h), Image.NEAREST)
+    else:
+        W, H = im.size
+        out = Image.new("RGBA", (R(W, k), R(H, k)), (0, 0, 0, 0))
+        for x0, y0, rw, rh in (regions or [[0, 0, W, H]]):
+            part = shrink_cells(im.crop((x0, y0, x0 + rw, y0 + rh)), k, None)
+            part = part.resize((R(x0 + rw, k) - R(x0, k), R(y0 + rh, k) - R(y0, k)), Image.NEAREST)
+            out.paste(part, (R(x0, k), R(y0, k)))
+        im = out
     px = im.load()
     for y in range(im.height):
         for x in range(im.width):
             p = px[x, y]
-            if p in table:
-                px[x, y] = table[p][(x + y) & 1]
-    return im
+            if p[3] and p[:3] in table:
+                px[x, y] = table[p[:3]][(x + y) & 1] + (255,)
+    return im if regions else im.convert("RGB")
 
 
 def pictures_for(folder, k):
@@ -200,12 +218,15 @@ def pictures_for(folder, k):
             w, h = max(1, round(im.width * k)), max(1, round(im.height * k))
             dst = os.path.join(out, fn)
             os.makedirs(os.path.dirname(dst), exist_ok=True)
-            if fn in GYM_SRC:
-                # the gym room: resized from its undithered source, then dithered at this size
-                # (a checkerboard resized loses its pattern: rows and columns dropped or doubled)
-                im = Image.open(os.path.join(APP, "tools", "gym_room_src.png")).convert("RGBA")
-                im = shrink_cells(im, k, None) if k < 1 else im.resize((w, h), Image.NEAREST)
-                gym_dither(im).save(dst)
+            if fn in IMPORTED:
+                imported(IMPORTED[fn], k, w, h).save(dst)
+            elif k < 1 and isinstance(CELLS.get(fn), list):
+                # bands of different cells, one under another: (top, bottom, cell w, cell h)
+                im = im.convert("RGBA")
+                out_im = Image.new("RGBA", (R(im.width, k), R(im.height, k)), (0, 0, 0, 0))
+                for y0, y1, cw, ch in CELLS[fn]:
+                    out_im.paste(shrink_cells(im.crop((0, y0, im.width, y1)), k, (cw, ch)), (0, R(y0, k)))
+                out_im.save(dst)
             elif k < 1 and fn in CELLS:
                 shrink_cells(im, k, CELLS[fn]).save(dst)
             else:

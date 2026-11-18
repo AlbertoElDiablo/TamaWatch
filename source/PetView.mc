@@ -885,9 +885,10 @@ class PetView extends WatchUi.View {
     const FOOD_ICON = [0, 4, 5, 6];
 
     function drawIcon(dc, idx, x, y) {
-        if (icons == null) { icons = WatchUi.loadResource(Rez.Drawables.icons); }
+        // (the icons are rows 48-79 of the badges' picture: tools/merge_dock_icons.py)
+        if (badgeStrip == null) { badgeStrip = WatchUi.loadResource(Rez.Drawables.badges); }
         dc.setClip(x, y, 32, 32);
-        dc.drawBitmap(x - 32 * idx, y, icons);
+        dc.drawBitmap(x - 32 * idx, y - 48, badgeStrip);
         dc.clearClip();
     }
 
