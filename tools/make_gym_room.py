@@ -34,6 +34,21 @@ for i, a in enumerate(SOLID):
 CHOICES = SOLID + list(MIX)
 
 
+# The home screen's shades (tools/boost_colours.py): each non-grey colour's weakest channel(s) one
+# step down, so colours hold up on the MIP screen as the rest of the app's do. Applied to the solid
+# colours and to both colours of every checkerboard.
+def boost(c):
+    lv = [min(range(4), key=lambda i: abs(i * 85 - v)) for v in c[:3]]
+    m, M = min(lv), max(lv)
+    if M != m:
+        lv = [max(0, v - 1) if v == m else v for v in lv]
+    return tuple(v * 85 for v in lv)
+
+
+for _k in list(MIX):
+    MIX[_k] = (boost(MIX[_k][0]), boost(MIX[_k][1]))
+
+
 def nearest(c, cache={}):
     if c not in cache:
         # a little weight against the checkerboards: a solid colour when about as close
@@ -71,6 +86,11 @@ def dither(img):
     return img
 
 
+sp = src.load()
+for y in range(N):
+    for x in range(N):
+        if sp[x, y] not in MIX:
+            sp[x, y] = boost(sp[x, y])
 used = {c for c in src.get_flattened_data()}
 src.save(os.path.join(APP, "tools", "gym_room_src.png"))
 json.dump([[list(c), [list(MIX[c][0]), list(MIX[c][1])]] for c in sorted(used) if c in MIX],

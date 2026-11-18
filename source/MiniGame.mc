@@ -627,7 +627,7 @@ class MiniGameView extends WatchUi.View {
         dc.fillRoundedRectangle(bx - 14, by - 7, 28, 40, 8);
         dc.setColor(0xAA0000, Graphics.COLOR_TRANSPARENT);
         dc.fillRoundedRectangle(bx - 12, by - 5, 24, 36, 7);
-        dc.setColor(0xFF5555, Graphics.COLOR_TRANSPARENT);
+        dc.setColor(0xFF0000, Graphics.COLOR_TRANSPARENT);   // (the home screen's boosted shades)
         dc.fillRectangle(bx - 8, by, 4, 26);
         dc.setColor(0x550000, Graphics.COLOR_TRANSPARENT);
         dc.fillRectangle(bx + 6, by, 3, 26);

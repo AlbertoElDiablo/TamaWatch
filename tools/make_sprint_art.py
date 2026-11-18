@@ -29,6 +29,21 @@ for i, a in enumerate(SOLID):
         if all(abs(x - y) <= 85 for x, y in zip(a, b)):
             MIX.setdefault(tuple((x + y) // 2 for x, y in zip(a, b)), (a, b))
 CHOICES = SOLID + list(MIX)
+
+
+# The home screen's shades (tools/boost_colours.py): each non-grey colour's weakest channel(s) one
+# step down, so colours hold up on the MIP screen as the rest of the app's do. Applied to the solid
+# colours and to both colours of every checkerboard.
+def boost(c):
+    lv = [min(range(4), key=lambda i: abs(i * 85 - v)) for v in c[:3]]
+    m, M = min(lv), max(lv)
+    if M != m:
+        lv = [max(0, v - 1) if v == m else v for v in lv]
+    return tuple(v * 85 for v in lv)
+
+
+for _k in list(MIX):
+    MIX[_k] = (boost(MIX[_k][0]), boost(MIX[_k][1]))
 CLEAR = (0, 0, 0, 0)
 _near = {}
 
@@ -157,6 +172,12 @@ def dither(img):
     return img
 
 
+shp = sheet.load()
+for yy in range(sheet.height):
+    for xx in range(sheet.width):
+        c = shp[xx, yy]
+        if c[3] and c[:3] not in MIX:
+            shp[xx, yy] = boost(c) + (255,)
 used = {c[:3] for c in sheet.get_flattened_data() if c[3]}
 sheet.save(os.path.join(T, "sprint_src.png"))
 json.dump({"mix": [[list(c), [list(MIX[c][0]), list(MIX[c][1])]] for c in sorted(used) if c in MIX],
