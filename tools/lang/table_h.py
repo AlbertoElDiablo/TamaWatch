@@ -74,4 +74,5 @@ T = {
 'BEST {0}': ('RÈCORD {0}', 'RÉCORD {0}', 'RECORD {0}', 'RECORD {0}', 'RECORDE {0}'),
 'NEW BEST!': ('NOU RÈCORD!', '¡NUEVO RÉCORD!', 'NOUVEAU RECORD !', 'NUOVO RECORD!', 'NOVO RECORDE!'),
 'Daily gift: 1 fruit!': ('Regal del dia: 1 fruita!', '¡Regalo del día: 1 fruta!', 'Cadeau du jour : 1 fruit !', 'Regalo del giorno: 1 frutto!', 'Presente do dia: 1 fruta!'),
+"It's full!": ('Està ple!', '¡Está lleno!', "Il n'a plus faim !", 'È sazio!', 'Está cheio!'),
 }

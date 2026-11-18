@@ -41,7 +41,7 @@ watch models.
   game gives some back at once, and a recorded activity gives back half.
 - **Good care wins fights.** When food, hygiene or joy is under half, your partner's attacks miss
   more often (up to 4 in 10 with all three empty), and the battle tells you why it missed.
-- **Training games find fruit.** Now and then (about 1 game in 3) a training game turns up one
+- **Training games find fruit.** Now and then (about 1 game in 6) a training game turns up one
   apple, blue berry or orange.
 - **Quiet while you train.** Care alerts wait while you're recording an activity.
 - **Hunger at a watch's pace.** A full food bar lasts about 12 waking hours, so a few pieces of

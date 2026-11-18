@@ -582,7 +582,8 @@ class MiniGameView extends WatchUi.View {
     // colour << 18 | y << 12 | x << 6 | length, at its natural size) enlarged to about the
     // trainer's height (48, at most 2x like the trainer), cropped to its outline, facing the way
     // it runs (they face left: flipped when it heads right). Painted a few dozen runs a frame
-    // (all at once trips the watchdog); until it is done the thumbnail stands in.
+    // (all at once trips the watchdog); until it is done only its shadow shows (no thumbnail atlas: it would
+    // hold 150 creatures' thumbnails in memory for one picture).
     function creature(it, flip) {
         if (budget <= 0) { return; }
         if (it[3] == null) {
@@ -675,11 +676,28 @@ class MiniGameView extends WatchUi.View {
     }
 
     // The grass lanes' rocks, trees and bushes (kids.png cells 18-29, at 2x) in rows s0..s1.
+    // ... and the roads' wild creatures, standing over the lane behind them (their big pictures
+    // are painted a little a frame: see creature; until then only the shadow shows).
     function things(dc, x0, s0, s1) {
         if (kids == null) { return; }
         for (var s = s0; s <= s1; s++) {
             var k = row + (STAND - s);
             var l = laneAt(k);
+            if (l[0] == 1) {
+                dc.clearClip();                           // (not inside the last tree's box)
+                var y = TOP + s * RH;
+                for (var i = 0; i < l[3].size(); i++) {
+                    var it = l[3][i];
+                    if (it[4] != null || it[3] == null) { creature(it, l[1] > 0); }
+                    if (it[4] != null || it[3] == null) { continue; }
+                    for (var w = -1; w <= 1; w++) {
+                        var ix = x0 + it[0].toNumber() + w * PERIOD;
+                        if (ix > x0 + FIELD_W + 40 || ix + it[1] < x0 - 40) { continue; }
+                        dc.drawBitmap(ix + 20 - it[6][0] / 2, y + RH - 1 - it[6][1], it[3]);
+                    }
+                }
+                continue;
+            }
             if (l[0] != 0) { continue; }
             var base = TOP + s * RH + RH - 2 - 72;
             for (var i = 0; i < l[3].size(); i++) {
@@ -703,18 +721,10 @@ class MiniGameView extends WatchUi.View {
                     var ix = x0 + it[0].toNumber() + w * PERIOD;
                     if (ix > x0 + FIELD_W + 40 || ix + it[1] < x0 - 40) { continue; }
                     dc.setColor(0xAA5500, Graphics.COLOR_TRANSPARENT);
-                    dc.fillEllipse(ix + 20, y + RH - 4, 14, 3);
-                    if (it[4] != null || it[3] == null) { creature(it, l[1] > 0); }   // (painted a little a frame)
-                    if (it[4] == null && it[3] != null) { dc.drawBitmap(ix + 20 - it[6][0] / 2, y + RH - 1 - it[6][1], it[3]); }
-                    else {
-                        dc.setClip(ix - 4, y - 6, 48, RH + 6);
-                        Thumbs.draw(dc, it[2], ix + 1, y + RH / 2 - 23, false);
-                        dc.clearClip();
-                    }
+                    dc.fillEllipse(ix + 20, y + RH - 4, 14, 3);     // its shadow (itself: things)
                 }
             }
         } else if (l[0] == 2 || l[0] == 3) {
-            // the water scrolls slowly (its ripples repeat every 24)
             // the water flows with its logs (the same way, the same speed); its ripples repeat every 24
             var flow = (((now.toLong() * l[2].toNumber() * l[1] / 1000) % 24).toNumber() + 24) % 24;   // (a Long: no overflow)
             dc.drawBitmap(sx - 24 + flow, y, RouteArt.water);

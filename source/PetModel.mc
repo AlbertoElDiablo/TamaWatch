@@ -247,7 +247,7 @@ class PetModel {
     // ---- the fruit bag: apples, blue berries, oranges, candy. Earned by being active ----
     var bag = [6, 1, 1, 1];
     var amFruit = 0;            // intensity minutes toward the next apple
-    const MIN_PER_APPLE = 20;
+    const MIN_PER_APPLE = 45;
 
     // ---- on-screen moments (not saved) ----
     var screenOff = true;   // true while replaying minutes the app was closed
@@ -512,6 +512,7 @@ class PetModel {
             setScreenOff(false);     // caught up: you are looking at it now
         }
         if (bbVals.size() > 0) { bbNow = bbVals[0]; energy = bbNow; }   // your Body Battery right now
+        var readBefore = [stepRead, stepReadDay];
         claimSteps();
         // the day's gift: 2 pieces of fruit the first time you look after 6:00 each morning (a
         // "gift day" runs 6:00 to 6:00; missed days don't add up)
@@ -526,7 +527,9 @@ class PetModel {
             say(got == 2 ? Tr.t("Daily gift: 2 fruit!") : Tr.t("Daily gift: 1 fruit!"), 5000);
             save();
         }
-        if (done > 0) { save(); }
+        // new steps were paid (StepBank saves at once): save where they were read up to, or the
+        // next opening would pay the same steps (and the same apple) again
+        if (done > 0 || stepRead != readBefore[0] || stepReadDay != readBefore[1]) { save(); }
     }
 
     function tick() {
@@ -884,6 +887,7 @@ class PetModel {
     function feedFruit(color) {
         if (!canAct()) { return; }
         if (bag[color] <= 0) { say(Tr.t("None left: get active!"), 2500); return; }
+        if (food >= 100) { say(Tr.t("It's full!"), 2500); return; }       // a full bar: no more food
         bag[color]--;
         if (lovesBerry(color)) {
             food = clamp100(food + 49);        // 40 % more than TamaPoke's 35
@@ -903,6 +907,7 @@ class PetModel {
     function feedCandy() {
         if (!canAct()) { return; }
         if (bag[FOOD_CANDY] <= 0) { say(Tr.t("No candy: weekly goal!"), 2500); return; }
+        if (food >= 100) { say(Tr.t("It's full!"), 2500); return; }       // a full bar: no more food
         bag[FOOD_CANDY]--;
         food = clamp100(food + 14);            // (10)
         joy = clamp100(joy + 2);
@@ -1181,7 +1186,7 @@ class PetModel {
             if (m < 5) { continue; }                       // a few minutes is not a workout
             weekCnt++;
             repWork++;
-            giveFruit(1 + rnd(2), 1 + m / 45);        // a berry or an orange, one more each 45 min
+            if (m >= 30) { giveFruit(1 + rnd(2), m / 60 > 0 ? m / 60 : 1); }   // a berry or an orange from 30 min, one an hour
             var jg = joyPerTraining();
             var before = joy;
             joy = clamp100(joy + jg);
