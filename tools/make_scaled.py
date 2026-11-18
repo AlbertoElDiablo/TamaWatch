@@ -114,7 +114,7 @@ def fonts_for(folder, k, chars):
 # differ least from it, never an outline. Plain nearest-neighbour dropped the egg's side outlines.
 CELLS = {"thumbs/thumbs.png": (38, 38), "thumbs/thumbs_sil.png": (38, 38), "dock/icons.png": (32, 32),
          "badges/badges.png": (48, 48), "kids/kids.png": (48, 48), "egg/egg.png": (96, 96),
-         "gym/gym.png": None}
+         "gym/gym.png": None}   # (the gym room: its own path, GYM_SRC)
 
 
 def R(v, k):
@@ -167,6 +167,22 @@ def shrink_cells(im, k, cell):
     return out
 
 
+GYM_SRC = {"gym/gym.png"}
+
+
+def gym_dither(im):
+    """tools/make_gym_room.py's placeholder colours as checkerboards of their two (its DITHER)."""
+    table = {tuple(a): (tuple(b), tuple(c)) for a, (b, c) in json.load(open(os.path.join(APP, "tools", "gym_room_dither.json")))}
+    im = im.convert("RGB")
+    px = im.load()
+    for y in range(im.height):
+        for x in range(im.width):
+            p = px[x, y]
+            if p in table:
+                px[x, y] = table[p][(x + y) & 1]
+    return im
+
+
 def pictures_for(folder, k):
     src = os.path.join(RES, "drawables")
     out = os.path.join(folder, "drawables")
@@ -184,7 +200,13 @@ def pictures_for(folder, k):
             w, h = max(1, round(im.width * k)), max(1, round(im.height * k))
             dst = os.path.join(out, fn)
             os.makedirs(os.path.dirname(dst), exist_ok=True)
-            if k < 1 and fn in CELLS:
+            if fn in GYM_SRC:
+                # the gym room: resized from its undithered source, then dithered at this size
+                # (a checkerboard resized loses its pattern: rows and columns dropped or doubled)
+                im = Image.open(os.path.join(APP, "tools", "gym_room_src.png")).convert("RGBA")
+                im = shrink_cells(im, k, None) if k < 1 else im.resize((w, h), Image.NEAREST)
+                gym_dither(im).save(dst)
+            elif k < 1 and fn in CELLS:
                 shrink_cells(im, k, CELLS[fn]).save(dst)
             else:
                 im.resize((w, h), Image.NEAREST).save(dst)

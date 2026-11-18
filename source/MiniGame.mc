@@ -524,7 +524,7 @@ class MiniGameView extends WatchUi.View {
     }
 
     // The punching bag on its chain from the ceiling's bracket (pivot 140, 70), swinging; the green
-    // line it must cross; the partner on the mat (the room: make_gym_room.py).
+    // line it must cross; the partner on the mat (the room: make_gym_room.py, from the user's picture).
     function drawBag(dc, cx) {
         var ang = 0.6 * Math.sin(phase);
         var px = cx;
@@ -535,6 +535,14 @@ class MiniGameView extends WatchUi.View {
         dc.fillRectangle(cx - 2, 148, 5, 30);
         dc.setColor(0x55FF00, Graphics.COLOR_TRANSPARENT);
         dc.fillRectangle(cx - 1, 149, 3, 28);
+        dc.setColor(0x000000, Graphics.COLOR_TRANSPARENT);   // the bracket on the ceiling
+        dc.fillRectangle(122, 61, 36, 8);
+        dc.fillRectangle(134, 67, 12, 8);
+        dc.setColor(0x555555, Graphics.COLOR_TRANSPARENT);
+        dc.fillRectangle(124, 63, 32, 4);
+        dc.setColor(0xAAAAAA, Graphics.COLOR_TRANSPARENT);
+        dc.fillRectangle(124, 63, 32, 1);
+        dc.fillRectangle(136, 68, 8, 5);
         dc.setColor(0x000000, Graphics.COLOR_TRANSPARENT);   // the chain
         dc.setPenWidth(4);
         dc.drawLine(px, py, bx, by - 8);
@@ -558,7 +566,7 @@ class MiniGameView extends WatchUi.View {
         dc.fillRectangle(bx - 9, by - 12, 18, 7);
         dc.setColor(0x555555, Graphics.COLOR_TRANSPARENT);
         dc.fillRectangle(bx - 7, by - 10, 14, 3);
-        drawPet(dc, cx - 48, 232);
+        drawPet(dc, cx, 254);                               // on the mat
         if (streak >= 3) {
             dc.setColor(INK, Graphics.COLOR_TRANSPARENT);
             dc.drawText(cx + 52, 196, Graphics.FONT_XTINY, "x" + streak, Graphics.TEXT_JUSTIFY_CENTER);
