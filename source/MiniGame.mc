@@ -74,13 +74,18 @@ class MiniGameView extends WatchUi.View {
         last = t0;
         nextRowAt = t0 + 600;
         nextOrbAt = t0 + 800;
-        if (mode == BRACE) { kids = WatchUi.loadResource(Rez.Drawables.kids); }
-        timer = new Timer.Timer();
-        timer.start(method(:tick), 50, true);
+        if (mode == BRACE) {
+            if (petView != null) { petView.shed(); }   // home's pictures aren't needed here: room for the route's
+            kids = WatchUi.loadResource(Rez.Drawables.kids);
+            RouteArt.make();            // the ground's first strip (one a frame: see drawCross)
+            fresh = true;
+        }
+        timer = Ticker.take(0);                   // (a reused timer: see Ticker)
+        Ticker.t[0].start(method(:tick), 50, true);
     }
 
     function onHide() {
-        if (timer != null) { timer.stop(); timer = null; }   // the timer points back at this view: drop it, or neither is ever freed
+        if (timer != null) { Ticker.release(0, timer); timer = null; }   // the timer points back at this view: drop it, or neither is ever freed
         Thumbs.clear();
         RouteArt.clear();
         kids = null;
@@ -535,10 +540,17 @@ class MiniGameView extends WatchUi.View {
 
     // The route (RouteArt.mc): ground strips painted once, the things on it drawn with shading,
     // your partner and the wild creatures as their thumbnails with a shadow under them.
+    var fresh = true;           // a run's first frame to come
     var budget = 0;             // runs of the creatures' big pictures still to paint this frame
     function drawCross(dc, cx) {
-        budget = RouteArt.grassA == null ? 0 : 60;       // (none on the frame the ground is painted)
-        RouteArt.make();
+        if (!RouteArt.make()) {
+            // the ground is still being painted (a strip a frame, a quarter of a second): grass
+            dc.setColor(0x55AA55, 0x55AA55);
+            dc.clear();
+            return;
+        }
+        budget = fresh ? 0 : 60;                          // (none in a run's first frame: its lanes are made)
+        fresh = false;
         var x0 = cx - FIELD_W / 2;
         var now = System.getTimer();
         for (var s = LANES; s >= -1; s--) {              // (and one more past each edge)
@@ -557,7 +569,7 @@ class MiniGameView extends WatchUi.View {
             var cell = 2 + (model.trGender == 1 ? 8 : 0) + face * 2 + steps % 2;
             var top = py + RH - 3 - 50;                  // (up to 40 x 50 at 2x, on its cell's floor)
             dc.setClip(ppx - 20, top, 40, 50);
-            dc.drawBitmap(ppx - 20 - (cell * 48 + 4), top - 22, kids);
+            dc.drawBitmap(ppx - 20 - (cell * 48 + 4), top + 2, kids);      // (kids.png: 48-row cells)
             dc.clearClip();
         }
         things(dc, x0, STAND + 1, LANES);
@@ -646,14 +658,14 @@ class MiniGameView extends WatchUi.View {
         var base = y + 5 + 18 - 72;
         var a = w / 2 < 48 ? w / 2 : 48;
         dc.setClip(x, base, a, 72);
-        dc.drawBitmap(x - 33 * 48, base, kids);
+        dc.drawBitmap(x - 33 * 48, base + 24, kids);
         for (var m = x + a; m < x + w - a; m += 48) {
             var e = x + w - a - m < 48 ? x + w - a - m : 48;
             dc.setClip(m, base, e, 72);
-            dc.drawBitmap(m - 34 * 48, base, kids);
+            dc.drawBitmap(m - 34 * 48, base + 24, kids);
         }
         dc.setClip(x + w - a, base, a, 72);
-        dc.drawBitmap(x + w - 48 - 35 * 48, base, kids);
+        dc.drawBitmap(x + w - 48 - 35 * 48, base + 24, kids);
         dc.clearClip();
     }
 
@@ -670,7 +682,7 @@ class MiniGameView extends WatchUi.View {
             if (dir < 0 && i == 0) { cell = 30; cw = 42; cx -= 6; }
             else if (dir > 0 && i == cars - 1) { cell = 31; cw = 42; }
             dc.setClip(cx, base, cw, 72);
-            dc.drawBitmap(cx - cell * 48, base, kids);
+            dc.drawBitmap(cx - cell * 48, base + 24, kids);
         }
         dc.clearClip();
     }
@@ -703,7 +715,7 @@ class MiniGameView extends WatchUi.View {
             for (var i = 0; i < l[3].size(); i++) {
                 var tx = x0 + l[3][i][0] + CW / 2;
                 dc.setClip(tx - 24, base, 48, 72);
-                dc.drawBitmap(tx - 24 - (18 + l[3][i][2]) * 48, base, kids);
+                dc.drawBitmap(tx - 24 - (18 + l[3][i][2]) * 48, base + 24, kids);
             }
         }
         dc.clearClip();

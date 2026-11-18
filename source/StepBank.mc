@@ -2,12 +2,12 @@ import Toybox.Application.Storage;
 import Toybox.Lang;
 
 // Every step counts toward EXP and food, and what's left over carries on: if an apple takes
-// 2,000 steps and you walk 1,500 now and 500 tomorrow, the apple comes with that last 500.
+// 5,000 steps and you walk 4,000 now and 1,000 tomorrow, the apple comes with that last 1,000.
 // Nothing resets at midnight or on a new week. Kept apart from PetModel (which is at Connect
 // IQ's member limit), saved under "stepbank".
 module StepBank {
     const STEPS_PER_EXP = 50;          // 10,000 steps = 200 EXP (an intensity minute is 10)
-    const STEPS_PER_APPLE = 2000;
+    const STEPS_PER_APPLE = 5000;
 
     var expSteps = null;               // steps toward the next EXP point
     var fruitSteps = 0;                // steps toward the next apple

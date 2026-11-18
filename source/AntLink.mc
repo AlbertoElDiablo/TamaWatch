@@ -62,12 +62,12 @@ class AntLink {
         } catch (e) {
             failed = true;
         }
-        timer = new Timer.Timer();
-        timer.start(method(:onTimer), RETRY_MS, true);
+        timer = Ticker.take(2);                   // (a reused timer: see Ticker)
+        Ticker.t[2].start(method(:onTimer), RETRY_MS, true);
     }
 
     function stop() {
-        if (timer != null) { timer.stop(); timer = null; }
+        if (timer != null) { Ticker.release(2, timer); timer = null; }
         if (channel != null) {
             try { channel.close(); channel.release(); } catch (e) { }
             channel = null;

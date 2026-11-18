@@ -1063,14 +1063,12 @@ class PetModel {
         var g = stepGoal();
         if (steps >= g / 3 && (stepClaim & 1) == 0) {
             stepClaim |= 1;
-            giveFruit(0, 1);
-            joy = clamp100(joy + 2);
+            joy = clamp100(joy + 2);                     // (no apple at a third: fruit comes slowly)
             repJoy += 2;
             stepToast(g / 3);
         }
         if (steps >= 2 * g / 3 && (stepClaim & 2) == 0) {
             stepClaim |= 2;
-            giveFruit(0, 1);
             joy = clamp100(joy + 3);
             repJoy += 3;
             if (bbNow < 0) { energy = clamp100(energy + 10); }   // with Body Battery, energy is only yours

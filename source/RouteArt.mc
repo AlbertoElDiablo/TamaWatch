@@ -30,22 +30,31 @@ module RouteArt {
         dc.fillRectangle(R(x), R(y), R(x + w) - R(x) > 0 ? R(x + w) - R(x) : 1, R(y + h) - R(y) > 0 ? R(y + h) - R(y) : 1);
     }
 
+    // One strip a call (all five at once trips the watchdog on some watches, the Forerunner 255
+    // among them): true once they are all painted. Route Crossing calls it each frame until then.
     function make() {
-        if (grassA != null) { return; }
+        if (rail != null) { return true; }
         // the strips are drawn as they are where the watch's pictures were resized for it (or it
         // can't scale them), and scaled by Sdc where it can
         f = (Scr.prescaled || !Scr.scaled) ? Scr.k : 1.0;
-        seed = 7;
-        grassA = newBmp([0x55AA55, 0x00AA00, 0x005500, 0xFFFFFF, 0xFFFF00, 0xFF5555, 0x55FF55]);
-        paintGrass(grassA.getDc(), 0x55AA55, 0x00AA00);
-        grassB = newBmp([0x55AA55, 0x00AA00, 0x005500, 0xFFFFFF, 0xFFFF00, 0xFF5555, 0x55FF55]);
-        paintGrass(grassB.getDc(), 0x00AA00, 0x55AA55);
-        path = newBmp([0xFFAA55, 0xAA5500, 0xFFFFAA, 0x550000, 0xFFFF55]);
-        paintPath(path.getDc());
-        water = newBmp([0x0055FF, 0x0000AA, 0x55AAFF, 0xFFFFFF, 0x00AAFF]);
-        paintWater(water.getDc());
-        rail = newBmp([0xAAAAAA, 0x555555, 0x550000, 0xAA5500, 0xFFFFFF, 0x000000]);
-        paintRail(rail.getDc());
+        if (grassA == null) {
+            seed = 7;
+            grassA = newBmp([0x55AA55, 0x00AA00, 0x005500, 0xFFFFFF, 0xFFFF00, 0xFF5555, 0x55FF55]);
+            paintGrass(grassA.getDc(), 0x55AA55, 0x00AA00);
+        } else if (grassB == null) {
+            grassB = newBmp([0x55AA55, 0x00AA00, 0x005500, 0xFFFFFF, 0xFFFF00, 0xFF5555, 0x55FF55]);
+            paintGrass(grassB.getDc(), 0x00AA00, 0x55AA55);
+        } else if (path == null) {
+            path = newBmp([0xFFAA55, 0xAA5500, 0xFFFFAA, 0x550000, 0xFFFF55]);
+            paintPath(path.getDc());
+        } else if (water == null) {
+            water = newBmp([0x0055FF, 0x0000AA, 0x55AAFF, 0xFFFFFF, 0x00AAFF]);
+            paintWater(water.getDc());
+        } else {
+            rail = newBmp([0xAAAAAA, 0x555555, 0x550000, 0xAA5500, 0xFFFFFF, 0x000000]);
+            paintRail(rail.getDc());
+        }
+        return rail != null;
     }
 
     function clear() { grassA = null; grassB = null; path = null; water = null; rail = null; }

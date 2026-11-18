@@ -82,13 +82,13 @@ class GalleryView extends WatchUi.View {
         Sfx.screenOk = true;
         thumbs = true;                  // loaded one by one (Thumbs)
         sils = true;
-        timer = new Timer.Timer();
-        timer.start(method(:tick), 150, true);
+        timer = Ticker.take(0);                   // (a reused timer: see Ticker)
+        Ticker.t[0].start(method(:tick), 150, true);
     }
 
     function onHide() {
         Sfx.screenOk = false;
-        if (timer != null) { timer.stop(); timer = null; }   // the timer points back at this view: drop it, or neither is ever freed
+        if (timer != null) { Ticker.release(0, timer); timer = null; }   // the timer points back at this view: drop it, or neither is ever freed
         thumbs = null;
         sils = null;
         Thumbs.clear();

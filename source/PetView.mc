@@ -82,13 +82,13 @@ class PetView extends WatchUi.View {
         Sfx.screenOk = true;                // vibration is allowed on the main screen
         model.screenOff = true;     // replay the closed time as "screen off", then wake
         model.update();             // the first slice now, so the first frame knows if it is catching up
-        timer = new Timer.Timer();
+        timer = Ticker.take(0);                   // (a reused timer: see Ticker)
         schedule(model.trName == null ? 50 : 200);   // a new game: the welcome guide at once
     }
 
     function onHide() {
         Sfx.screenOk = false;
-        if (timer != null) { timer.stop(); timer = null; }   // the timer points back at this view: drop it, or neither is ever freed
+        if (timer != null) { Ticker.release(0, timer); timer = null; }   // the timer points back at this view: drop it, or neither is ever freed
         model.clearReport();          // gains seen while open were shown as they came
         reportChecked = false;
         setupOpen = false;
@@ -97,7 +97,7 @@ class PetView extends WatchUi.View {
     }
 
     function schedule(ms) {
-        if (timer != null) { timer.start(method(:tick), ms, false); }
+        if (timer != null && Ticker.who[0] == timer) { Ticker.t[0].stop(); Ticker.t[0].start(method(:tick), ms, false); }
     }
 
     var reportChecked = false;
@@ -199,6 +199,15 @@ class PetView extends WatchUi.View {
             }
         }
         return (oneShot >= 0) ? oneShot : IDLE;
+    }
+
+    // Drop the pictures home keeps (its scene, the creature's sheet, the dock icons, the badges)
+    // while a screen that doesn't show them is on top (Route Crossing): they come back on their
+    // own the next time home draws (syncSprite, syncBackground and the lazy loads see them gone).
+    function shed() {
+        dex = -1; bmp = null; meta = null; anim = -1; oldArt = null;
+        bg = null; bgBiome = -1; bgSlot = -1;
+        icons = null; badgeStrip = null; eggBmp = null;
     }
 
     function syncSprite() {

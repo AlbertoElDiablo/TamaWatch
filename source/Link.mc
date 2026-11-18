@@ -63,13 +63,13 @@ class LinkClient {
     }
 
     function start() {
-        timer = new Timer.Timer();
-        timer.start(method(:poll), POLL_MS, true);
+        timer = Ticker.take(1);                   // (a reused timer: see Ticker)
+        Ticker.t[1].start(method(:poll), POLL_MS, true);
         poll();
     }
 
     function stop() {
-        if (timer != null) { timer.stop(); timer = null; }
+        if (timer != null) { Ticker.release(1, timer); timer = null; }
     }
 
     function online() { return errors < 3; }

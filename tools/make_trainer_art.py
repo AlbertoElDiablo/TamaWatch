@@ -125,6 +125,16 @@ lg = lg.crop(lg.getbbox()); lg = lg.resize((lg.width * 2, lg.height * 2), Image.
 for c, x in ((33, 0), (34, lg.width // 2 - 24), (35, lg.width - 48)):
     img.alpha_composite(lg.crop((x, 0, x + 48, lg.height)), (c * 48, 72 - lg.height))
 
+# Packed for memory (it is loaded whole: Route Crossing's biggest picture): 48 x 48 cells, each
+# the lower 48 rows of its 72-row cell above (all a cell holds, but the two big trainers), and the
+# big trainers' top 24 rows in two cells after the rest (36: the boy's, 37: the girl's), on their
+# floor. Trainer.mc's drawKid puts them back together; MiniGame draws cell rows 24-71 of before.
+packed = Image.new("RGBA", (38 * 48, 48), (0, 0, 0, 0))
+packed.paste(img.crop((0, 24, 36 * 48, 72)), (0, 0))
+for g in range(2):
+    packed.paste(img.crop((g * 48, 0, g * 48 + 48, 24)), ((36 + g) * 48, 24))
+img = packed
+
 d = os.path.join(APP, "resources", "drawables", "kids")
 os.makedirs(d, exist_ok=True)
 img.save(os.path.join(d, "kids.png"))

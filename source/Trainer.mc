@@ -14,10 +14,13 @@ const TEAM_MATES = 5;          // the team: your partner and 5 more (PetModel.PA
 const KID_W = 48;
 const KID_H = 72;
 
-// One of the two characters (0 or 1) from the kids strip, top-left at x, y.
+// One of the two characters (0 or 1) from the kids strip, top-left at x, y (72 tall): its lower
+// 48 rows from cell g, its top 24 from cell 36 + g (make_trainer_art.py packs the strip 48 tall).
 function drawKid(dc, kids, g, x, y) {
-    dc.setClip(x, y, KID_W, KID_H);
-    dc.drawBitmap(x - g * KID_W, y, kids);
+    dc.setClip(x, y + 24, KID_W, 48);
+    dc.drawBitmap(x - g * KID_W, y + 24, kids);
+    dc.setClip(x, y, KID_W, 24);
+    dc.drawBitmap(x - (36 + g) * KID_W, y - 24, kids);
     dc.clearClip();
 }
 

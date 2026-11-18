@@ -13,7 +13,7 @@ watch models.
 
 ## What it does
 
-- **Your activity raises it.** Every 50 steps give it 1 EXP and every 2,000 steps an apple (steps add
+- **Your activity raises it.** Every 50 steps give it 1 EXP and every 5,000 steps an apple (steps add
   up over time, and steps from a day you didn't open the app are picked up from the watch's
   history). Each activity you record pays EXP by its length and sport, per minute: running or
   swimming 20, strength/gym 27, cycling 15, hiking 12, walking 8, anything else 15. Strength raises

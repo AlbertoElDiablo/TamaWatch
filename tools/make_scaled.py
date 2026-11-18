@@ -113,7 +113,7 @@ def fonts_for(folder, k, chars):
 # the egg, the thumbnails) is shrunk by dropping the columns and rows that repeat their neighbour, or
 # differ least from it, never an outline. Plain nearest-neighbour dropped the egg's side outlines.
 CELLS = {"thumbs/thumbs.png": (38, 38), "thumbs/thumbs_sil.png": (38, 38), "dock/icons.png": (32, 32),
-         "badges/badges.png": (48, 48), "kids/kids.png": (48, 72), "egg/egg.png": None, "egg/egg_small.png": None}
+         "badges/badges.png": (48, 48), "kids/kids.png": (48, 48), "egg/egg.png": None, "egg/egg_small.png": None}
 
 
 def R(v, k):

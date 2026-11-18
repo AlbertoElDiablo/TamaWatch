@@ -64,12 +64,12 @@ class LinkView extends WatchUi.View {
     }
 
     function onShow() {
-        timer = new Timer.Timer();
-        timer.start(method(:tick), 500, true);
+        timer = Ticker.take(0);                   // (a reused timer: see Ticker)
+        Ticker.t[0].start(method(:tick), 500, true);
     }
 
     function onHide() {
-        if (timer != null) { timer.stop(); timer = null; }   // the timer points back at this view: drop it, or neither is ever freed
+        if (timer != null) { Ticker.release(0, timer); timer = null; }   // the timer points back at this view: drop it, or neither is ever freed
         Thumbs.clear();
     }
 

@@ -424,12 +424,12 @@ class BattleView extends WatchUi.View {
             backNight = h < 6 || h >= 20;
             back = WatchUi.loadResource(battleBack(Scenes.biomeFor(foe.dex)));
         }
-        timer = new Timer.Timer();
-        timer.start(method(:tick), 100, true);
+        timer = Ticker.take(0);                   // (a reused timer: see Ticker)
+        Ticker.t[0].start(method(:tick), 100, true);
     }
 
     function onHide() {
-        if (timer != null) { timer.stop(); timer = null; }   // the timer points back at this view: drop it, or neither is ever freed
+        if (timer != null) { Ticker.release(0, timer); timer = null; }   // the timer points back at this view: drop it, or neither is ever freed
     }
 
     function tick() as Void {
