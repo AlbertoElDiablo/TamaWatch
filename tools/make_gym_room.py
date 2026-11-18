@@ -49,7 +49,18 @@ for _k in list(MIX):
     MIX[_k] = (boost(MIX[_k][0]), boost(MIX[_k][1]))
 
 
+GREYS = [p for p in CHOICES if max(p) - min(p) == 0 or (p in MIX and all(max(q) == min(q) for q in MIX[p]))]
+
+
 def nearest(c, cache={}):
+    if c not in cache and max(c) - min(c) < 26:
+        # nearly grey (the treadmill's frame, the outlines): a grey, never a tinted checkerboard
+        # (lavender ones turned purple in the boost)
+        cache[c] = min(GREYS, key=lambda p: sum((x - y) ** 2 for x, y in zip(c, p)) + (300 if p in MIX else 0))
+    if c not in cache and not (c[0] - c[1] > 40 and c[2] - c[1] > 40):
+        # not a real purple (the treadmill's lavender grey): no checkerboard the boost turns magenta
+        ok = [p for p in CHOICES if not (p in MIX and any(q[0] == q[2] and q[0] > q[1] for q in MIX[p]))]
+        cache[c] = min(ok, key=lambda p: sum((x - y) ** 2 for x, y in zip(c, p)) + (300 if p in MIX else 0))
     if c not in cache:
         # a little weight against the checkerboards: a solid colour when about as close
         cache[c] = min(CHOICES, key=lambda p: sum((x - y) ** 2 for x, y in zip(c, p)) + (300 if p in MIX else 0))
