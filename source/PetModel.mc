@@ -1460,7 +1460,6 @@ class PetModel {
         if (bbNow < 0) { energy = dropTo(energy, 12, 5); }   // with Body Battery, energy is only yours
         food = dropTo(food, 5, 5);
         weight = weight - hits / 3 > 0 ? weight - hits / 3 : 0;
-        joy = clamp100(joy + 2);
         if (hits >= 20) { heartUntil = ms() + HEART_MS; }
         addBond(2);
         registerCare();
@@ -1477,20 +1476,18 @@ class PetModel {
         if (bbNow < 0) { energy = dropTo(energy, 10, 5); }   // with Body Battery, energy is only yours
         food = dropTo(food, 4, 5);
         weight = weight - hits / 2 > 0 ? weight - hits / 2 : 0;
-        joy = clamp100(joy + 2);
         addBond(2);
         registerCare();
         save();
         return gain;
     }
 
-    // Route Crossing: 6 points can train DEFENSE (Extra.gameGain), and joy; never bond.
+    // Route Crossing: 6 points can train DEFENSE (Extra.gameGain); never joy or bond.
     function playResult(score) {
         if (!canAct()) { return 0; }
         var e = Extra.gameGain(score / 6);                  // a good game: a quarter of a workout's effort
         var gain = 0;
         if (e > 0) { Extra.train(self, 1, e); gain = Extra.shown; }     // (hundredths of a point)
-        joy = clamp100(joy + 2 + (score > 15 ? 3 : 0));
         if (bbNow < 0) { energy = dropTo(energy, 10 + score / 2, 5); }   // with Body Battery, energy is only yours
         food = dropTo(food, 5, 5);
         weight = weight - score * 2 > 0 ? weight - score * 2 : 0;
