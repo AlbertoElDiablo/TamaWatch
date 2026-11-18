@@ -469,17 +469,29 @@ class MiniGameView extends WatchUi.View {
         dc.setColor(BG, BG);
         dc.clear();
         if (!done && mode == BRACE) { drawCross(dc, cx); return; }         // the route fills the screen
-        if (!done && gym != null) { dc.drawBitmap(0, 0, gym); }          // the gym (its light panel under the title)
+        if (!done && gym != null) {
+            dc.drawBitmap(0, 0, gym);                                    // the gym
+            // a plain white sign behind the title and score (the light panel's stripes showed through)
+            var tw = dc.getTextWidthInPixels(Tr.t(NAMES[mode]), Graphics.FONT_XTINY);
+            var sw = tw > 100 ? tw + 16 : 116;
+            dc.setColor(INK, Graphics.COLOR_TRANSPARENT);
+            dc.fillRoundedRectangle(cx - sw / 2 - 2, 15, sw + 4, 44, 7);
+            dc.setColor(0xFFFFFF, Graphics.COLOR_TRANSPARENT);
+            dc.fillRoundedRectangle(cx - sw / 2, 17, sw, 40, 6);
+        }
+        // in the gym, PERFECT! / GOOD / MISS take the title's place on the sign for a moment
+        var inSign = !done && gym != null && System.getTimer() < flashUntil;
+        dc.setColor(inSign ? (flash.equals(Tr.t("MISS")) ? 0xFF0000 : 0x00AA00) : INK, Graphics.COLOR_TRANSPARENT);
+        dc.drawText(cx, 18, Graphics.FONT_XTINY, inSign ? flash : Tr.t(NAMES[mode]), Graphics.TEXT_JUSTIFY_CENTER);
         dc.setColor(INK, Graphics.COLOR_TRANSPARENT);
-        dc.drawText(cx, 18, Graphics.FONT_XTINY, Tr.t(NAMES[mode]), Graphics.TEXT_JUSTIFY_CENTER);
         if (done) { drawResult(dc, cx); return; }
         var left = (LENGTH_MS[mode] - elapsed()) / 1000;
         dc.drawText(cx, 36, Graphics.FONT_XTINY, score + Tr.t(" pts   ") + (left < 0 ? 0 : left) + "s", Graphics.TEXT_JUSTIFY_CENTER);
         if (mode == BAG) { drawBag(dc, cx); }
         else if (mode == DODGE) { drawDodge(dc, cx); }
         else { drawCross(dc, cx); }
-        if (System.getTimer() < flashUntil) {
-            dc.setColor(gym != null && !done ? 0xFFFF55 : 0xFF0000, Graphics.COLOR_TRANSPARENT);   // on the gym's blue ceiling: yellow
+        if (System.getTimer() < flashUntil && !inSign) {
+            dc.setColor(0xFF0000, Graphics.COLOR_TRANSPARENT);
             dc.drawText(cx, 56, Graphics.FONT_SMALL, flash, Graphics.TEXT_JUSTIFY_CENTER);
         }
     }
