@@ -59,9 +59,10 @@ watch models.
   another). In battle, fruit from the BAG heals or cures (it takes the turn). Each creature that
   beats a foe earns its EXP. Beaten gym leaders come back stronger after two days, and a rival,
   KAI, turns up every few days with a team that grows with you.
-- **Slow and steady training.** Stats grow like your own fitness: a workout adds 1 point plus 1 per
-  half hour (at most 4), a good training game now and then 1 (at most 2 a day from games). Great care until it evolves
-  adds 3 to each stat.
+- **Slow and steady training, like VO2 max.** Every workout brings a stat's next point closer (a
+  30-minute one about a quarter of a point at first), a good training game a quarter of that (4 a
+  day count), gym wins some too; each point takes a little longer than the last, with no fixed
+  ceiling. Great care until it evolves adds 3 to each stat.
 - **Route Crossing.** The defence training game: hop your trainer as far as you can across grass,
   paths full of wild creatures, rivers and railways. It gets faster the further you go and only
   ends when you're hit or fall in. (Its lane rules follow Evan Bacon's MIT-licensed

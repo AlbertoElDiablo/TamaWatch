@@ -91,7 +91,7 @@ class BattleResultView extends WatchUi.View {
             if (b.newBadge) { items.add([Tr.t("NEW BADGE!") + " " + b.model.badgeCount(b.hard) + "/8", 0xFF5500]); }
             if (b.trainGain > 0) {
                 var statNames = [Tr.t("STRENGTH"), Tr.t("DEFENSE"), Tr.t("SPEED")];
-                items.add([statNames[b.model.lastTrained] + " +" + b.trainGain, 0x00AA00]);
+                items.add([statNames[b.model.lastTrained] + " +" + Extra.fmt(b.trainGain), 0x00AA00]);
             }
             items.add([Tr.t("Candy") + " +1", 0x00AA00]);
         }

@@ -894,7 +894,7 @@ class BattleView extends WatchUi.View {
         }
         var statNames = [Tr.t("STRENGTH"), Tr.t("DEFENSE"), Tr.t("SPEED")];
         dc.setColor(trainGain > 0 ? 0x00AA00 : TEXT_GREY, Graphics.COLOR_TRANSPARENT);
-        dc.drawText(cx, 196, Graphics.FONT_XTINY, trainGain > 0 ? statNames[model.lastTrained] + " +" + trainGain : Tr.t("Fully trained"), Graphics.TEXT_JUSTIFY_CENTER);
+        dc.drawText(cx, 196, Graphics.FONT_XTINY, trainGain > 0 ? statNames[model.lastTrained] + " +" + Extra.fmt(trainGain) : Tr.t("Fully trained"), Graphics.TEXT_JUSTIFY_CENTER);
         dc.setColor(TEXT_GREY, Graphics.COLOR_TRANSPARENT);
         dc.drawText(cx, 220, Graphics.FONT_XTINY, Tr.t("START: back"), Graphics.TEXT_JUSTIFY_CENTER);
     }

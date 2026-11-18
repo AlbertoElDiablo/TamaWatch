@@ -54,11 +54,11 @@ class PetDelegate extends WatchUi.BehaviorDelegate {
         } else if (i == view.BTN_BOOK) {
             onMenu();
         } else {
-            // TamaPoke's dumbbell: the TRAINING panel, a row per stat with its progress to the cap
+            // TamaPoke's dumbbell: the TRAINING panel, a row per stat with how close its next point is
             if (!model.canAct()) { return; }
-            var rows = [[Tr.t("STRENGTH"), 0, 0, pct(model.trAtk, model.trMaxFor(model.ivAtk))],
-                        [Tr.t("SPEED"), 1, 0, pct(model.trSpe, model.trMaxFor(model.ivSpe))],
-                        [Tr.t("DEFENSE"), 2, 0, pct(model.trDef, model.trMaxFor(model.ivDef))]];
+            var rows = [[Tr.t("STRENGTH"), 0, 0, Extra.progress(0, model.trAtk)],
+                        [Tr.t("SPEED"), 1, 0, Extra.progress(2, model.trSpe)],
+                        [Tr.t("DEFENSE"), 2, 0, Extra.progress(1, model.trDef)]];
             var pv = new PanelView(Tr.t("TRAINING"), rows, Tr.t("START: train"));
             WatchUi.pushView(pv, new PanelDelegate(pv, new TrainingDelegate(model, view)), WatchUi.SLIDE_UP);
         }

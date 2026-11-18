@@ -402,7 +402,7 @@ class PetModel {
     function vitStat() { return isEgg() ? 0 : calcStat(Dex.row(dex)[3], ivHp, 10); }
     function spaStat() { return isEgg() ? 0 : calcStat(Dex.row(dex)[7], ivAtk, trAtk); }   // special uses ATK's IV/training
     function spdStat() { return isEgg() ? 0 : calcStat(Dex.row(dex)[8], ivDef, trDef); }
-    function trMaxFor(iv) { return 70 + (30 * iv) / 31; }
+    function trMaxFor(iv) { return Extra.MAX; }                  // (no ceiling but that: Extra.train)
 
     // ---------- time ----------
 
@@ -585,7 +585,7 @@ class PetModel {
         goodTicks++;
         if (goodTicks < DEF_TRAIN_TICKS) { return; }
         goodTicks = 0;
-        if (trDef < trMaxFor(ivDef)) { trDef++; }
+        Extra.train(self, 1, 12);                    // good care: half a 30-minute workout
     }
 
     // Night is your own sleep window (bedtime to wake time in the watch's user profile). With the
@@ -1085,7 +1085,7 @@ class PetModel {
         if ((info has :floorsClimbed) && (info has :floorsClimbedGoal) && info.floorsClimbed != null && info.floorsClimbedGoal != null &&
             info.floorsClimbedGoal > 0 && info.floorsClimbed >= info.floorsClimbedGoal && (stepClaim & 8) == 0) {
             stepClaim |= 8;
-            trDef = min(trDef + 2, trMaxFor(ivDef));
+            Extra.train(self, 1, 24);
             heartUntil = ms() + HEART_MS;
             if (!catchingUp) { Sfx.vibe(Sfx.STEPS); }
             say(Tr.t("FLOORS GOAL! DEF +2"), 3500);
@@ -1186,25 +1186,25 @@ class PetModel {
             var before = joy;
             joy = clamp100(joy + jg);
             repJoy += joy - before;
-            // slow and steady, like VO2 max: +1, and 1 more per half hour, at most +4 a workout
+            // slow and steady, like VO2 max (Extra.train): effort 12, and 12 more per half hour, at most 48
             var pts = 1 + m / 30 > 4 ? 4 : 1 + m / 30;
             var sp = got[i][0];
             var label = Tr.t("WORKOUT");
             var gain = "";
             if (sp == Activity.SPORT_RUNNING) {
                 label = Tr.t("RUN");
-                var b = trSpe; trSpe = min(trSpe + pts, trMaxFor(ivSpe)); gain = Tr.t("SPD +") + (trSpe - b);
+                Extra.train(self, 2, pts * 12); gain = Tr.t("SPD +") + Extra.fmt(Extra.shown);
             } else if (sp == Activity.SPORT_CYCLING || sp == Activity.SPORT_SWIMMING) {
                 label = sp == Activity.SPORT_CYCLING ? Tr.t("RIDE") : Tr.t("SWIM");
-                var b = trDef; trDef = min(trDef + pts, trMaxFor(ivDef)); gain = Tr.t("DEF +") + (trDef - b);
+                Extra.train(self, 1, pts * 12); gain = Tr.t("DEF +") + Extra.fmt(Extra.shown);
             } else if (sp == Activity.SPORT_TRAINING || sp == Activity.SPORT_FITNESS_EQUIPMENT) {
                 label = Tr.t("GYM");
-                var b = trAtk; trAtk = min(trAtk + pts, trMaxFor(ivAtk)); gain = Tr.t("ATK +") + (trAtk - b);
+                Extra.train(self, 0, pts * 12); gain = Tr.t("ATK +") + Extra.fmt(Extra.shown);
             } else {
                 if (sp == Activity.SPORT_WALKING) { label = Tr.t("WALK"); }
                 else if (sp == Activity.SPORT_HIKING) { label = Tr.t("HIKE"); }
                 var g2 = rewardTraining(pts / 2 > 0 ? pts / 2 : 1);
-                gain = ([Tr.t("ATK"), Tr.t("DEF"), Tr.t("SPD")])[lastTrained] + " +" + g2;
+                gain = ([Tr.t("ATK"), Tr.t("DEF"), Tr.t("SPD")])[lastTrained] + " +" + Extra.fmt(g2);
             }
             addBond(3 + m / 20);
             Hp.heal(self, HP_WORKOUT);
@@ -1370,7 +1370,8 @@ class PetModel {
         save();
     }
 
-    // Training into a random stat that still has room under its IV ceiling.
+    // Training into a random stat that still has room: amount is in workout points (12 effort
+    // each, Extra.train); returns how much of a point it made (hundredths), 0 if none had room.
     function rewardTraining(amount) {
         var room = [];
         if (trAtk < trMaxFor(ivAtk)) { room.add(0); }
@@ -1379,10 +1380,8 @@ class PetModel {
         if (room.size() == 0) { return 0; }
         var which = room[rnd(room.size())];
         lastTrained = which;
-        if (which == 0) { trAtk = min(trAtk + amount, trMaxFor(ivAtk)); }
-        else if (which == 1) { trDef = min(trDef + amount, trMaxFor(ivDef)); }
-        else { trSpe = min(trSpe + amount, trMaxFor(ivSpe)); }
-        return amount;
+        Extra.train(self, which, amount * 12);
+        return Extra.shown;
     }
 
     // ---------- moves (TamaPoke's checkLearnGates / acceptLearn / pendingLearnables) ----------
@@ -1452,16 +1451,15 @@ class PetModel {
     // Training bag: 12 points can train STRENGTH (Extra.gameGain: now and then 1, at most 2 a day from games), under the IV ceiling.
     function trainStrength(hits) {
         if (!canAct()) { return 0; }
-        var gain = Extra.gameGain(min(hits / 12, 3));
-        var before = trAtk;
-        trAtk = min(trAtk + gain, trMaxFor(ivAtk));
-        gain = trAtk - before;
+        var e = Extra.gameGain(hits / 12);                  // a good game: a quarter of a workout's effort
+        var gain = 0;
+        if (e > 0) { Extra.train(self, 0, e); gain = Extra.shown; }     // (hundredths of a point)
         if (bbNow < 0) { energy = dropTo(energy, 12, 5); }   // with Body Battery, energy is only yours
         food = dropTo(food, 5, 5);
         weight = weight - hits / 3 > 0 ? weight - hits / 3 : 0;
         joy = clamp100(joy + 2);
         if (hits >= 20) { heartUntil = ms() + HEART_MS; }
-        addBond(2 + gain / 6);
+        addBond(2);
         registerCare();
         save();
         return gain;
@@ -1470,15 +1468,14 @@ class PetModel {
     // Dodge run: 8 points can train SPEED (Extra.gameGain).
     function trainSpeed(hits) {
         if (!canAct()) { return 0; }
-        var gain = Extra.gameGain(min(hits / 8, 3));
-        var before = trSpe;
-        trSpe = min(trSpe + gain, trMaxFor(ivSpe));
-        gain = trSpe - before;
+        var e = Extra.gameGain(hits / 8);                  // a good game: a quarter of a workout's effort
+        var gain = 0;
+        if (e > 0) { Extra.train(self, 2, e); gain = Extra.shown; }     // (hundredths of a point)
         if (bbNow < 0) { energy = dropTo(energy, 10, 5); }   // with Body Battery, energy is only yours
         food = dropTo(food, 4, 5);
         weight = weight - hits / 2 > 0 ? weight - hits / 2 : 0;
         joy = clamp100(joy + 2);
-        addBond(2 + gain / 6);
+        addBond(2);
         registerCare();
         save();
         return gain;
@@ -1487,16 +1484,15 @@ class PetModel {
     // Route Crossing: 6 points can train DEFENSE (Extra.gameGain), and joy.
     function playResult(score) {
         if (!canAct()) { return 0; }
-        var gain = Extra.gameGain(min(score / 6, 3));
-        var before = trDef;
-        trDef = min(trDef + gain, trMaxFor(ivDef));
-        gain = trDef - before;
+        var e = Extra.gameGain(score / 6);                  // a good game: a quarter of a workout's effort
+        var gain = 0;
+        if (e > 0) { Extra.train(self, 1, e); gain = Extra.shown; }     // (hundredths of a point)
         joy = clamp100(joy + 2 + (score > 15 ? 3 : 0));
         if (bbNow < 0) { energy = dropTo(energy, 10 + score / 2, 5); }   // with Body Battery, energy is only yours
         food = dropTo(food, 5, 5);
         weight = weight - score * 2 > 0 ? weight - score * 2 : 0;
         if (score >= 5) { heartUntil = ms() + HEART_MS; }
-        addBond(2 + gain / 6);
+        addBond(2);
         registerCare();
         save();
         return gain;

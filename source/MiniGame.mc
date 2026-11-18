@@ -467,14 +467,14 @@ class MiniGameView extends WatchUi.View {
         }
         // what it trained, or why nothing: that stat is already full, or too few points;
         // a size smaller (and trimmed) when the language needs more room
-        var line = gain > 0 ? stat[mode] + " +" + gain : (statFull() ? stat[mode] + ": " + Tr.t("Fully trained")
+        var line = gain > 0 ? stat[mode] + " +" + Extra.fmt(gain) : (statFull() ? stat[mode] + ": " + Tr.t("Fully trained")
                    : (Extra.gamesLeft() == 0 ? Tr.t("Enough training for today") : Tr.t("No training gained")));
         var lf = Fit.font(dc, line, 200, [Graphics.FONT_SMALL, Graphics.FONT_TINY, Graphics.FONT_XTINY]);
         dc.drawText(cx, ly, lf, Fit.trim(dc, line, 210, lf), Graphics.TEXT_JUSTIFY_CENTER);
         if (found >= 0) {
             var fruit = [Tr.t("Found an apple!"), Tr.t("Found a blue berry!"), Tr.t("Found an orange!")];
             dc.setColor(0x00AA00, Graphics.COLOR_TRANSPARENT);
-            dc.drawText(cx, ly + 28, Graphics.FONT_XTINY, fruit[found], Graphics.TEXT_JUSTIFY_CENTER);
+            dc.drawText(cx, ly + 32, Graphics.FONT_XTINY, fruit[found], Graphics.TEXT_JUSTIFY_CENTER);
         }
         dc.setColor(TEXT_GREY, Graphics.COLOR_TRANSPARENT);
         dc.drawText(cx, 200, Graphics.FONT_XTINY, Tr.t("START"), Graphics.TEXT_JUSTIFY_CENTER);
