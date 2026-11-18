@@ -254,14 +254,11 @@ class PetView extends WatchUi.View {
         syncSprite();
         dc.setColor(Graphics.COLOR_WHITE, Graphics.COLOR_BLACK);
         dc.clear();
-        if (!opened && model.ceremony == model.CER_NONE) {
-            // opening: the welcome screen first (its report comes over it without a slide), never
-            // the home screen and partner before it
-            drawDisc(dc, Tr.t("WELCOME!"));
-            dc.setColor(TEXT_GREY, Graphics.COLOR_TRANSPARENT);
-            dc.drawText(w / 2, h / 2 - 10, Graphics.FONT_XTINY, Tr.t("Catching up..."), Graphics.TEXT_JUSTIFY_CENTER);
-        } else if (model.catchingUp) {
+        if (model.catchingUp) {
             drawCatchingUp(dc, w, h);
+        } else if (!opened && model.ceremony == model.CER_NONE) {
+            // opening: a blank screen until the welcome report (if there is one) comes over it
+            // without a slide, never the home screen and partner before it
         } else if (model.starterPick) {
             drawStarterSelect(dc, w, h);
         } else if (page == 0) {
