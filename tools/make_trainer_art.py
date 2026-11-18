@@ -74,17 +74,15 @@ for cols in (COLA, COLB):
 # 2 + character * 8 + view * 2 + frame (views 0 front, 1 back, 2 left, 3 right), centred, on the
 # cell's floor.
 img = Image.new("RGBA", (36 * 48, 72), (0, 0, 0, 0))
-for k, (half, col) in enumerate([(A, COLA), (B, COLB)]):
-    top = 72 - len(half) * S
-    for y, row in enumerate(half):
-        full = row + row[::-1]
-        for x, ch in enumerate(full):
-            if ch == ".":
-                continue
-            for dy in range(S):
-                for dx in range(S):
-                    img.putpixel((k * 48 + x * S + dx, top + y * S + dy), col[ch] + (255,))
 walk = Image.open(os.path.join(os.path.dirname(os.path.abspath(__file__)), "walkers.png")).convert("RGBA")
+# The big figures (the trainer card, the character choice): cells 0 (the boy) and 1 (the girl), the
+# same drawings as on the route, standing facing front, at 3x (16 x 24: the 48 x 72 cell exactly),
+# on the cell's floor. (A and B above: the first figures, no longer drawn.)
+for k in range(2):
+    fr = walk.crop((0, k * 28, 20, k * 28 + 28))
+    fr = fr.crop(fr.getbbox())
+    fr = fr.resize((fr.width * 3, fr.height * 3), Image.NEAREST)
+    img.alpha_composite(fr, (k * 48 + (48 - fr.width) // 2, 72 - fr.height))
 for k in range(2):
     for i in range(8):
         fr = walk.crop((i * 20, k * 28, i * 20 + 20, k * 28 + 28))
