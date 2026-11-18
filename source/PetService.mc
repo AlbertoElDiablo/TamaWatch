@@ -6,10 +6,12 @@ import Toybox.Lang;
 import Toybox.Notifications;
 import Toybox.System;
 import Toybox.Time;
+import Toybox.Time.Gregorian;
 
-// Runs every 5 minutes in the background. It only reads the saved summary, projects
+// Runs every 15 minutes in the background. It only reads the saved summary, projects
 // the awake drain forward (FOOD 1 per 7 min, HYG ~0.25/min, JOY ~1 per 101 min) and asks the
-// watch to prompt you when a need runs low; never while you are recording an activity.
+// watch to prompt you when a need runs low (and, on workdays, to walk a little: idle); never
+// while you are recording an activity.
 (:background)
 class PetService extends System.ServiceDelegate {
 
@@ -78,20 +80,51 @@ class PetService extends System.ServiceDelegate {
         var d = Storage.getValue("pet") as Dictionary?;
         if (quiet(d)) { Background.exit(null); return; }
         if (eggReady(d) || eggHatching(d)) { Background.exit(null); return; }
+        var sent = false;
         if (d != null && !d["egg"] && !d["asleep"] && d["alerts"] != false) {
             var mins = (Time.now().value() - d["last"]) / 60;
             var food = d["food"] - awakeMins(d) / 7;          // FOOD_EVERY_MIN
             var joy = d["joy"] - mins / 101;
             var hygiene = d["hygiene"] - mins / 4;
+            sent = true;
             if (food < 20) {
                 notify(d["name"] + GT.g(GT.N_HUNGRY));
             } else if (hygiene < 20) {
                 notify(d["name"] + GT.g(GT.N_BATH));
             } else if (joy < 20) {
                 notify(d["name"] + GT.g(GT.N_TRAIN));
+            } else {
+                sent = false;
             }
+            idle(d, !sent);
         }
         Background.exit(null);
+    }
+
+    // Weekdays 9:00-17:00: fewer than 400 steps in an hour and a half, and the partner asks for a
+    // short walk (3-4 minutes). No wake of its own: this 15-minute check reads the step count the
+    // watch already keeps, and stores where the last 400 began ("idle": [time, steps, day]). After
+    // a nudge the next can come 90 minutes later at the soonest; any 400 steps start the count again.
+    function idle(d, may) {
+        if (!(Toybox has :ActivityMonitor)) { return; }
+        var info = ActivityMonitor.getInfo();
+        if (info == null || info.steps == null) { return; }
+        var g = Gregorian.info(Time.now(), Time.FORMAT_SHORT);
+        var a = Storage.getValue("idle") as Array?;
+        if (g.day_of_week < 2 || g.day_of_week > 6 || g.hour < 9 || g.hour >= 17) {
+            if (a != null) { Storage.setValue("idle", null); }
+            return;
+        }
+        var now = Time.now().value();
+        var day = g.day;
+        if (a == null || a.size() < 3 || a[2] != day || info.steps < a[1] || info.steps - a[1] >= 400) {
+            Storage.setValue("idle", [now, info.steps, day]);
+            return;
+        }
+        if (may && now - a[0] >= 5400) {
+            Storage.setValue("idle", [now, info.steps, day]);
+            notify(d["name"] + GT.g(GT.N_MOVE));
+        }
     }
 
     // The first waiting egg (one you have seen in the app) has had all its steps walked: it hatches

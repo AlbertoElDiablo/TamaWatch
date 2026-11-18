@@ -1484,7 +1484,7 @@ class PetModel {
         return gain;
     }
 
-    // Route Crossing: 6 points can train DEFENSE (Extra.gameGain), and joy.
+    // Route Crossing: 6 points can train DEFENSE (Extra.gameGain), and joy; never bond.
     function playResult(score) {
         if (!canAct()) { return 0; }
         var e = Extra.gameGain(score / 6);                  // a good game: a quarter of a workout's effort
@@ -1495,8 +1495,8 @@ class PetModel {
         food = dropTo(food, 5, 5);
         weight = weight - score * 2 > 0 ? weight - score * 2 : 0;
         if (score >= 5) { heartUntil = ms() + HEART_MS; }
-        addBond(2);
-        registerCare();
+        // no bond (nor the day's first care, which brings bond): the game is yours, not time
+        // spent with the partner
         save();
         return gain;
     }
