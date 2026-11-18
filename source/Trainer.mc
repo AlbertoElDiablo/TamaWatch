@@ -14,14 +14,34 @@ const TEAM_MATES = 5;          // the team: your partner and 5 more (PetModel.PA
 const KID_W = 48;
 const KID_H = 72;
 
-// One of the two characters (0 or 1) from the kids strip, top-left at x, y (72 tall): its lower
-// 48 rows from cell g, its top 24 from cell 36 + g (make_trainer_art.py packs the strip 48 tall).
+// One of the two characters (0 or 1), top-left at x, y in a 48 x 72 box: drawn pixel by pixel
+// (KidArt, from make_trainer_art.py) with every pixel a square of whole screen pixels, the biggest
+// whole size that fits this screen (3 on a 280- or 260-pixel one), standing on the box's floor.
+// A resized bitmap came out uneven: some pixels 2 wide, some 3. (kids: unused, kept for callers.)
 function drawKid(dc, kids, g, x, y) {
-    dc.setClip(x, y + 24, KID_W, 48);
-    dc.drawBitmap(x - g * KID_W, y + 24, kids);
-    dc.setClip(x, y, KID_W, 24);
-    dc.drawBitmap(x - (36 + g) * KID_W, y - 24, kids);
-    dc.clearClip();
+    var raw = dc;
+    var x0 = x;
+    var y0 = y;
+    var cw = KID_W;
+    var ch = KID_H;
+    if (dc instanceof Sdc) {
+        raw = dc.dc;
+        x0 = dc.X(x);
+        y0 = dc.Y(y);
+        cw = dc.R(KID_W);
+        ch = dc.R(KID_H);
+    }
+    var s = (ch * 3 + 18) / KID_H;
+    if (s < 1) { s = 1; }
+    var sz = KidArt.size(g);
+    var ox = x0 + (cw - sz[0] * s) / 2;
+    var oy = y0 + ch - sz[1] * s;
+    var r = KidArt.runs(g);
+    for (var i = 0; i < r.size(); i += 2) {
+        var v = r[i];
+        raw.setColor(r[i + 1], Graphics.COLOR_TRANSPARENT);
+        raw.fillRectangle(ox + (v & 31) * s, oy + ((v >> 5) & 31) * s, (v >> 10) * s, s);
+    }
 }
 
 // A bar in the home screen's style: grey track, solid fill leaving a 1 px rim, black outline.
