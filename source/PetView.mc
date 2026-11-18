@@ -638,7 +638,9 @@ class PetView extends WatchUi.View {
         var s = 3;
         var x = cx - 16 * s;
         var y = cy - 16 * s;
+        dc.setClip(x, y, 96, 96);               // (the small egg sits beside it in the picture)
         dc.drawBitmap(x, y, eggBmp);
+        dc.clearClip();
         dc.setColor(0x000000, Graphics.COLOR_TRANSPARENT);
         if (model.eggTaps >= 1) {
             for (var i = 0; i < CRACK1.size(); i++) { dc.fillRectangle(x + CRACK1[i][0] * s, y + CRACK1[i][1] * s, s, s); }

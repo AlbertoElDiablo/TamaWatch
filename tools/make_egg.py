@@ -34,9 +34,15 @@ for y, row in enumerate(rows):
 
 out = os.path.join(APP, "resources", "drawables", "egg")
 os.makedirs(out, exist_ok=True)
+# the 1x egg (the party screen's) beside the big one, in the same picture (Connect IQ allows 254
+# pictures, and the gym room needed one more): x 96-127; drawn clipped (PetView, Trainer)
+both = Image.new("RGBA", (im.width + 32, im.height), (0, 0, 0, 0))
+both.paste(im, (0, 0))
+both.paste(im.resize((32, 32), Image.NEAREST), (im.width, 0))
+im = both
 im.save(os.path.join(out, "egg.png"))
-cols = sorted({p[:3] for p in im.getdata() if p[3]})
+cols = sorted({p[:3] for p in im.get_flattened_data() if p[3]})
 pal = "".join("<color>%02X%02X%02X</color>" % c for c in cols)
 open(os.path.join(APP, "resources", "drawables", "egg.xml"), "w").write(
-    '<drawables>\n    <bitmap id="egg" filename="egg/egg.png"><palette disableTransparency="false">%s</palette></bitmap>\n</drawables>\n' % pal)
+    '<drawables>\n    <bitmap scope="application" id="egg" filename="egg/egg.png"><palette disableTransparency="false">%s</palette></bitmap>\n</drawables>\n' % pal)
 print("egg:", im.size, "colours", len(cols))

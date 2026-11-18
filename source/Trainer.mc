@@ -928,8 +928,12 @@ class PetBoxView extends WatchUi.View {
             }
             var n = e[i][0][0];
             if (kind == 3) {                                  // an egg (the home screen's): a surprise inside
-                if (eggBmp == null) { eggBmp = WatchUi.loadResource(Rez.Drawables.egg_small); }
-                dc.drawBitmap(x + (CELL - 32) / 2, y + (CELL - 32) / 2, eggBmp);
+                if (eggBmp == null) { eggBmp = WatchUi.loadResource(Rez.Drawables.egg); }
+                var ex = x + (CELL - 32) / 2;                 // the small egg: x 96-127 of the egg's picture
+                var ey = y + (CELL - 32) / 2;
+                dc.setClip(ex, ey, 32, 32);
+                dc.drawBitmap(ex - 96, ey, eggBmp);
+                dc.clearClip();
             } else if (thumbs != null) {
                 var ox = x + (CELL - THUMB) / 2;
                 var oy = y + (CELL - THUMB) / 2;

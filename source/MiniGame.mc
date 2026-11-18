@@ -57,6 +57,7 @@ class MiniGameView extends WatchUi.View {
     var face = 1;         // which way the trainer faces: 0 front, 1 back (up the route), 2 left, 3 right
     var steps = 0;        // moves made: the walking frame alternates with each
     var kids = null;      // the trainers' picture (its walking views: make_trainer_art.py)
+    var gym = null;       // TRAINING BAG's room (tools/make_gym_room.py)
     var nextOrbAt = 0;
     var shieldSide = -1;
     var shieldAt = 0;
@@ -79,6 +80,7 @@ class MiniGameView extends WatchUi.View {
             kids = WatchUi.loadResource(Rez.Drawables.kids);
             RouteArt.make();            // the ground's first strip (one a frame: see drawCross)
         }
+        if (mode == BAG) { gym = WatchUi.loadResource(Rez.Drawables.gym); }   // loaded once, here: never mid-game
         timer = Ticker.take(0);                   // (a reused timer: see Ticker)
         Ticker.t[0].start(method(:tick), 50, true);
     }
@@ -88,6 +90,7 @@ class MiniGameView extends WatchUi.View {
         Thumbs.clear();
         RouteArt.clear();
         kids = null;
+        gym = null;
     }
 
     function rnd(n) { return Math.rand().abs() % n; }
@@ -465,6 +468,7 @@ class MiniGameView extends WatchUi.View {
         dc.setColor(BG, BG);
         dc.clear();
         if (!done && mode == BRACE) { drawCross(dc, cx); return; }         // the route fills the screen
+        if (!done && gym != null) { dc.drawBitmap(0, 0, gym); }          // the gym (its light panel under the title)
         dc.setColor(INK, Graphics.COLOR_TRANSPARENT);
         dc.drawText(cx, 18, Graphics.FONT_XTINY, Tr.t(NAMES[mode]), Graphics.TEXT_JUSTIFY_CENTER);
         if (done) { drawResult(dc, cx); return; }
@@ -474,7 +478,7 @@ class MiniGameView extends WatchUi.View {
         else if (mode == DODGE) { drawDodge(dc, cx); }
         else { drawCross(dc, cx); }
         if (System.getTimer() < flashUntil) {
-            dc.setColor(0xFF0000, Graphics.COLOR_TRANSPARENT);
+            dc.setColor(gym != null && !done ? 0xFFFF55 : 0xFF0000, Graphics.COLOR_TRANSPARENT);   // on the gym's blue ceiling: yellow
             dc.drawText(cx, 56, Graphics.FONT_SMALL, flash, Graphics.TEXT_JUSTIFY_CENTER);
         }
     }
@@ -518,24 +522,46 @@ class MiniGameView extends WatchUi.View {
         dc.clearClip();
     }
 
+    // The punching bag on its chain from the ceiling's bracket (pivot 140, 70), swinging; the green
+    // line it must cross; the partner on the mat (the room: make_gym_room.py).
     function drawBag(dc, cx) {
         var ang = 0.6 * Math.sin(phase);
         var px = cx;
         var py = 70;
         var bx = px + (90 * Math.sin(ang)).toNumber();
         var by = py + (90 * Math.cos(ang)).toNumber();
-        dc.setColor(0x00AA00, Graphics.COLOR_TRANSPARENT);   // the line to hit
-        dc.fillRectangle(cx - 1, 150, 3, 26);
-        dc.setColor(INK, Graphics.COLOR_TRANSPARENT);
+        dc.setColor(0x000000, Graphics.COLOR_TRANSPARENT);   // the line to hit
+        dc.fillRectangle(cx - 2, 148, 5, 30);
+        dc.setColor(0x55FF00, Graphics.COLOR_TRANSPARENT);
+        dc.fillRectangle(cx - 1, 149, 3, 28);
+        dc.setColor(0x000000, Graphics.COLOR_TRANSPARENT);   // the chain
+        dc.setPenWidth(4);
+        dc.drawLine(px, py, bx, by - 8);
+        dc.setColor(0xAAAAAA, Graphics.COLOR_TRANSPARENT);
         dc.setPenWidth(2);
-        dc.drawLine(px, py, bx, by);
+        dc.drawLine(px, py, bx, by - 8);
         dc.setPenWidth(1);
+        // the bag: dark outline, red body lit from the left, two white bands, a grey cap
+        dc.setColor(0x000000, Graphics.COLOR_TRANSPARENT);
+        dc.fillRoundedRectangle(bx - 14, by - 7, 28, 40, 8);
         dc.setColor(0xAA0000, Graphics.COLOR_TRANSPARENT);
-        dc.fillRoundedRectangle(bx - 12, by - 6, 24, 36, 8);
-        dc.setColor(INK, Graphics.COLOR_TRANSPARENT);
-        dc.drawRoundedRectangle(bx - 12, by - 6, 24, 36, 8);
-        drawPet(dc, cx - 60, 232);
-        if (streak >= 3) { dc.drawText(cx + 70, 200, Graphics.FONT_XTINY, "x" + streak, Graphics.TEXT_JUSTIFY_CENTER); }
+        dc.fillRoundedRectangle(bx - 12, by - 5, 24, 36, 7);
+        dc.setColor(0xFF5555, Graphics.COLOR_TRANSPARENT);
+        dc.fillRectangle(bx - 8, by, 4, 26);
+        dc.setColor(0x550000, Graphics.COLOR_TRANSPARENT);
+        dc.fillRectangle(bx + 6, by, 3, 26);
+        dc.setColor(0xFFFFFF, Graphics.COLOR_TRANSPARENT);
+        dc.fillRectangle(bx - 12, by + 4, 24, 3);
+        dc.fillRectangle(bx - 12, by + 21, 24, 3);
+        dc.setColor(0x000000, Graphics.COLOR_TRANSPARENT);
+        dc.fillRectangle(bx - 9, by - 12, 18, 7);
+        dc.setColor(0x555555, Graphics.COLOR_TRANSPARENT);
+        dc.fillRectangle(bx - 7, by - 10, 14, 3);
+        drawPet(dc, cx - 48, 232);
+        if (streak >= 3) {
+            dc.setColor(INK, Graphics.COLOR_TRANSPARENT);
+            dc.drawText(cx + 52, 196, Graphics.FONT_XTINY, "x" + streak, Graphics.TEXT_JUSTIFY_CENTER);
+        }
     }
 
     const LANE_X = [86, 140, 194];
