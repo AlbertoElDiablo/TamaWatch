@@ -102,7 +102,6 @@ class PetModel {
     const DRAIN_EVERY = 2;
     const RUNAWAY_TICKS = 180;
     const FAREWELL_AGE_MIN = 4320;          // 3 days in final form
-    const EVO_PENALTY_LEVELS = 24;
     const DEF_TRAIN_TICKS = 360;            // 6 calm hours: +1 DEF
     const MAX_CATCHUP_MIN = 20160;          // 2 weeks
     const CHUNK = 40;                       // minutes replayed per update call at most
@@ -633,7 +632,7 @@ class PetModel {
         var shinyBase = (lastEnd == CER_FAREWELL ? 24 : 48) - careBonus();
         if (shinyBase < 8) { shinyBase = 8; }
         eggShiny = rnd(shinyBase) == 0;
-        evoPen = retirePending ? EVO_PENALTY_LEVELS : 0;
+        evoPen = 0;                         // (no evolution penalty any more)
         retirePending = false;
         eggTaps = 0;
         food = 80; joy = 100; energy = 80; hygiene = 100;
@@ -768,7 +767,8 @@ class PetModel {
     function canEvolveNow() {
         if (isEgg() || sleeping || ceremony != CER_NONE) { return false; }
         if (Dex.evolvesTo(dex) == 0) { return false; }
-        return level() >= Dex.evolveLevel(dex) + careMistakes + evoPen && lowestStat() >= 40;
+        // at its level in the original games: no delay for slip-ups, low needs or an early release
+        return level() >= Dex.evolveLevel(dex);
     }
 
     function wantEvolveButton() { return canEvolveNow() && level() > evoDeclinedLv; }

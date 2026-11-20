@@ -564,7 +564,7 @@ class PetView extends WatchUi.View {
                      Tr.t("Bond ") + model.bond + Tr.t("   weight ") + model.weight,
                      Tr.t("Active weeks ") + model.streak + Tr.t(" (best ") + model.bestStreak + ")",
                      Tr.t("EXP ") + model.exp + Tr.t("   week ") + model.weekPct() + "%",
-                     Tr.t("Slip-ups ") + model.careMistakes + (model.evoPen > 0 ? Tr.t("  evolves a day later") : ""),
+                     Tr.t("Slip-ups ") + model.careMistakes,
                      Tr.t("Fav. fruit: ") + (model.berryKnown ? Tr.t(FOOD_NAMES[model.dex % 3]) : "?"),
                      Tr.t("Pokedex ") + model.registeredCount() + "/" + Dex.COUNT];
         } else if (cardPage == 1) {
