@@ -108,7 +108,8 @@ class PetDelegate extends WatchUi.BehaviorDelegate {
         rows.add([model.trName != null ? model.trName.toUpper() : Tr.t("TRAINER"), :trainer, 0, -1]);
         rows.add([Tr.t("TEAM"), :team, 0, -1]);
         rows.add([Tr.t("POKÉBOX"), :petbox, 0, -1]);
-        if (model.wantEvolveButton()) { rows.add([Tr.t("EVOLVE!"), :evolve, 0, -1]); }
+        // always there once it has reached its level (KEEP FORM only quiets the home screen's prompt)
+        if (model.canEvolveNow()) { rows.add([Tr.t("EVOLVE!"), :evolve, 0, -1]); }
         if (model.wantFarewellButton()) { rows.add([Tr.t("SAY GOODBYE"), :farewell, 0, -1]); }
         if (model.canRunawayNow()) { rows.add([Tr.t("IT WANTS TO LEAVE"), :runaway, 0, -1]); }
         if (model.waiting != null) { rows.add([Tr.t("MAKE ROOM"), :room, 0, -1]); }
