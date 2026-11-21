@@ -80,7 +80,7 @@ module Battle {
 
     function hasType(c, t) { return c.t1 == t || c.t2 == t; }
 
-    // cap > 0 fights at most at that level (TamaPoke's buildSquad level cap for a trainer).
+    // cap > 0 fights at most at that level (no battle uses one: yours keep their own level).
     function fromPet(p, cap) {
         var c = new Combatant();
         var lvl = p.level();

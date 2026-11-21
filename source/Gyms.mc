@@ -68,7 +68,7 @@ class GymView extends WatchUi.View {
         rowBox(dc, cx - 38, 58, 76, 22, sel == 0, TRACK);
         dc.setColor(INK, Graphics.COLOR_TRANSPARENT);
         centerText(dc, cx - 38, 58, 76, 22, UiFont.tiny(), hard ? Tr.t("HARD") : Tr.t("EASY"));
-        var visible = 4;
+        var visible = 3;                  // three rows tall enough for their two lines
         var ti = sel - 1;
         if (ti >= 0) {
             if (ti < top) { top = ti; }
@@ -80,24 +80,28 @@ class GymView extends WatchUi.View {
             var t = trainers[i];
             var tired = hard && lowBattery(model);       // hard gyms wait for your Body Battery
             var open = model.trainerUnlocked(i, hard) && !tired;
-            var y = 85 + k * 37;
-            rowBox(dc, Fit.COL_X, y, Fit.COL_W, 35, sel == i + 1, BG);
+            var y = 88 + k * 46;
+            rowBox(dc, Fit.COL_X, y, Fit.COL_W, 42, sel == i + 1, BG);
             dc.setColor(open ? INK : TEXT_GREY, Graphics.COLOR_TRANSPARENT);
             var done = model.hasBadge(i, hard) ? " *" : "";
-            dc.drawText(Fit.COL_X + 8, capY(UiFont.tiny(), y + 10), UiFont.tiny(), t[0] + done, Graphics.TEXT_JUSTIFY_LEFT);
+            dc.drawText(Fit.COL_X + 8, capY(UiFont.tiny(), y + 13), UiFont.tiny(), t[0] + done, Graphics.TEXT_JUSTIFY_LEFT);
             var team = trainerTeam(model, i, hard, t[4]);
             var re = team != t[4];                         // a rematch is due: stronger now
             dc.setColor(re && open ? 0xFF5500 : TEXT_GREY, Graphics.COLOR_TRANSPARENT);
-            dc.drawText(Fit.COL_X + 8, capY(UiFont.tiny(), y + 25), UiFont.tiny(), open ? (re ? Tr.t("REMATCH!") : t[1].toUpper()) : (tired ? Tr.t("LOW BODY BATTERY") : Tr.t("LOCKED")), Graphics.TEXT_JUSTIFY_LEFT);
+            var sub = open ? (re ? Tr.t("REMATCH!") : t[1].toUpper()) : (tired ? Tr.t("LOW BODY BATTERY") : Tr.t("LOCKED"));
             var lv = 0;
             for (var j = 0; j < team.size(); j++) { if (team[j][1] > lv) { lv = team[j][1]; } }
+            var lvText = Tr.t("Lv.") + lv + " x" + team.size();
+            // the second line shortened, never under the level on its right
+            var room = Fit.COL_W - 16 - (tired ? 0 : dc.getTextWidthInPixels(lvText, UiFont.tiny()) + 10);
+            dc.drawText(Fit.COL_X + 8, capY(UiFont.tiny(), y + 29), UiFont.tiny(), Fit.trim(dc, sub, room, UiFont.tiny()), Graphics.TEXT_JUSTIFY_LEFT);
             if (!tired) {                                   // closed for Body Battery: just the warning
                 dc.setColor(open ? INK : TEXT_GREY, Graphics.COLOR_TRANSPARENT);
-                dc.drawText(Fit.COL_X + Fit.COL_W - 8, capY(UiFont.tiny(), y + 25), UiFont.tiny(), Tr.t("Lv.") + lv + " x" + team.size(), Graphics.TEXT_JUSTIFY_RIGHT);
+                dc.drawText(Fit.COL_X + Fit.COL_W - 8, capY(UiFont.tiny(), y + 29), UiFont.tiny(), lvText, Graphics.TEXT_JUSTIFY_RIGHT);
             }
         }
         dc.setColor(TEXT_GREY, Graphics.COLOR_TRANSPARENT);
-        dc.drawText(cx, 238, UiFont.tiny(), (top / visible + 1) + "/" + ((trainers.size() + visible - 1) / visible) + Tr.t("   BACK"), Graphics.TEXT_JUSTIFY_CENTER);
+        dc.drawText(cx, capY(UiFont.tiny(), 238), UiFont.tiny(), (ti >= 0 ? ti + 1 : 1) + "/" + trainers.size() + Tr.t("   BACK"), Graphics.TEXT_JUSTIFY_CENTER);
     }
 }
 
@@ -166,6 +170,8 @@ class PickView extends WatchUi.View {
     var sel = 0;          // cards, then BACK, then FIGHT
     var thumbs = null;
     var cards = [];       // [dex, name, level, shiny]
+    var top = 0;          // the first row shown (on BACK / FIGHT the page stays put)
+    const ROWS = 3;
 
     function initialize(m, pv, idx, isHard, trainerRow) {
         View.initialize();
@@ -202,41 +208,55 @@ class PickView extends WatchUi.View {
         var team = row[4];
         var lv = 0;
         for (var j = 0; j < team.size(); j++) { if (team[j][1] > lv) { lv = team[j][1]; } }
+        // the trainer and its team, then how many you chose: each on its own line, centred
         dc.setColor(0x000000, Graphics.COLOR_TRANSPARENT);
-        dc.drawText(cx, 20, UiFont.small(), row[0] + Tr.t(" Lv.") + lv + " x" + team.size(), Graphics.TEXT_JUSTIFY_CENTER);
+        var tt = row[0] + Tr.t(" Lv.") + lv + " x" + team.size();
+        var tf = Fit.font(dc, tt, 170, [UiFont.small(), UiFont.tiny()]);
+        dc.drawText(cx, capY(tf, 32), tf, Fit.trim(dc, tt, 170, tf), Graphics.TEXT_JUSTIFY_CENTER);
         dc.setColor(TEXT_GREY, Graphics.COLOR_TRANSPARENT);
-        dc.drawText(cx, 40, UiFont.tiny(), Tr.t("CHOSEN ") + chosen() + "/6", Graphics.TEXT_JUSTIFY_CENTER);
-        var first = sel < cards.size() ? (sel / 6) * 6 : 0;
-        for (var k = 0; k < 6; k++) {
+        var pages = (cards.size() + ROWS - 1) / ROWS;
+        var first = sel < cards.size() ? (sel / ROWS) * ROWS : top;
+        top = first;
+        var sub = Tr.t("CHOSEN ") + chosen() + "/6" + (pages > 1 ? "   " + (first / ROWS + 1) + "/" + pages : "");
+        dc.drawText(cx, capY(UiFont.tiny(), 52), UiFont.tiny(), sub, Graphics.TEXT_JUSTIFY_CENTER);
+        // one row per creature: its picture, name and level on top, type below, a tick when chosen
+        var x = Fit.COL_X;
+        var rw = Fit.COL_W;
+        for (var k = 0; k < ROWS; k++) {
             var i = first + k;
             if (i >= cards.size()) { break; }
             var c = cards[i];
-            var x = 46 + (k % 2) * 96;
-            var y = 58 + (k / 2) * 46;
+            var y = 62 + k * 45;
             dc.setColor(0xFFFFFF, Graphics.COLOR_TRANSPARENT);
-            dc.fillRoundedRectangle(x, y, 92, 42, 6);
+            dc.fillRoundedRectangle(x, y, rw, 41, 7);
             dc.setColor(sel == i ? 0xFF0000 : 0x000000, Graphics.COLOR_TRANSPARENT);
             dc.setPenWidth(sel == i ? 3 : 1);
-            dc.drawRoundedRectangle(x, y, 92, 42, 6);
+            dc.drawRoundedRectangle(x, y, rw, 41, 7);
             dc.setPenWidth(1);
             var n = c[0];
-            dc.setClip(x + 1, y + 2, 38, 38);
-            Thumbs.draw(dc, n, x + 1, y + 2, false);
+            dc.setClip(x + 3, y + 2, 38, 38);
+            Thumbs.draw(dc, n, x + 3, y + 2, false);
             dc.clearClip();
+            var on = ((mask >> i) & 1) != 0;
+            var tx = x + 44;
+            var right = x + rw - (on ? 26 : 8);          // the tick sits at the row's right end
+            // the name on its own line; its level and type below
             dc.setColor(0x000000, Graphics.COLOR_TRANSPARENT);
-            var nm = c[1].toUpper();
-            if (nm.length() > 8) { nm = nm.substring(0, 8); }
-            dc.drawText(x + 40, y + 1, UiFont.tiny(), nm, Graphics.TEXT_JUSTIFY_LEFT);
-            dc.drawText(x + 40, y + 13, UiFont.tiny(), Tr.t("Lv.") + c[2] + (c[3] ? " *" : ""), Graphics.TEXT_JUSTIFY_LEFT);
+            dc.drawText(tx, capY(UiFont.tiny(), y + 13), UiFont.tiny(), Fit.trim(dc, c[1].toUpper(), right - tx, UiFont.tiny()), Graphics.TEXT_JUSTIFY_LEFT);
+            var lvs = Tr.t("Lv.") + c[2] + (c[3] ? " *" : "");
+            dc.drawText(tx, capY(UiFont.tiny(), y + 29), UiFont.tiny(), lvs, Graphics.TEXT_JUSTIFY_LEFT);
             var r = Dex.row(n);
             dc.setColor(Moves.typeColor(r[10]), Graphics.COLOR_TRANSPARENT);
-            dc.drawText(x + 40, y + 25, UiFont.tiny(), Moves.typeName(r[10]), Graphics.TEXT_JUSTIFY_LEFT);
-            if ((mask >> i) & 1) {
+            var lw = dc.getTextWidthInPixels(lvs + "  ", UiFont.tiny());
+            dc.drawText(tx + lw, capY(UiFont.tiny(), y + 29), UiFont.tiny(), Fit.trim(dc, Moves.typeName(r[10]), right - tx - lw, UiFont.tiny()), Graphics.TEXT_JUSTIFY_LEFT);
+            if (on) {
                 dc.setColor(0x00AA00, Graphics.COLOR_TRANSPARENT);
-                dc.fillCircle(x + 83, y + 32, 6);
+                dc.fillCircle(x + rw - 14, y + 20, 7);
                 dc.setColor(0xFFFFFF, Graphics.COLOR_TRANSPARENT);
-                dc.drawLine(x + 80, y + 32, x + 82, y + 35);
-                dc.drawLine(x + 82, y + 35, x + 87, y + 29);
+                dc.setPenWidth(2);
+                dc.drawLine(x + rw - 18, y + 20, x + rw - 15, y + 23);
+                dc.drawLine(x + rw - 15, y + 23, x + rw - 10, y + 17);
+                dc.setPenWidth(1);
             }
         }
         var bSel = sel == cards.size();
@@ -253,8 +273,8 @@ class PickView extends WatchUi.View {
         dc.drawRoundedRectangle(146, 200, 82, 26, 7);
         dc.setPenWidth(1);
         dc.setColor(0x000000, Graphics.COLOR_TRANSPARENT);
-        dc.drawText(93, 203, UiFont.tiny(), Tr.t("BACK"), Graphics.TEXT_JUSTIFY_CENTER);
-        dc.drawText(187, 203, UiFont.tiny(), Tr.t("FIGHT"), Graphics.TEXT_JUSTIFY_CENTER);
+        dc.drawText(93, capY(UiFont.tiny(), 213), UiFont.tiny(), Tr.t("BACK"), Graphics.TEXT_JUSTIFY_CENTER);
+        dc.drawText(187, capY(UiFont.tiny(), 213), UiFont.tiny(), Tr.t("FIGHT"), Graphics.TEXT_JUSTIFY_CENTER);
     }
 }
 

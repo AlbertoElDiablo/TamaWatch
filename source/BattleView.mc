@@ -88,9 +88,7 @@ class BattleView extends WatchUi.View {
         if (trainer >= 0) {
             var t = trainerRow();
             team = trainer == RIVAL ? t[4] : trainerTeam(model, trainer, hard, t[4]);   // a due rematch: stronger
-            var top = 0;
-            for (var i = 0; i < team.size(); i++) { if (team[i][1] > top) { top = team[i][1]; } }
-            buildSquad(top);
+            buildSquad(0);                    // yours fight at their own level, never brought down
             foe = Battle.fromSpecies(team[0][0], team[0][1], hard ? 31 : 16);
             msgs = [t[0] + Tr.t(" wants to battle!"), t[0] + Tr.t(" sends out ") + foe.name + "!", Tr.t("Go, ") + you.name + "!"];
         } else {
@@ -820,7 +818,7 @@ class BattleView extends WatchUi.View {
             msgs = wrapLines(dc, msgs, 2 * CELL_W + 4 - 14);
             dc.setColor(UI_INK, Graphics.COLOR_TRANSPARENT);
             for (var i = 0; i < 3 && i < msgs.size(); i++) {
-                dc.drawText(w / 2, capY(Graphics.FONT_XTINY, GRID_Y + 10 + i * 17), Graphics.FONT_XTINY, msgs[i], Graphics.TEXT_JUSTIFY_CENTER);
+                dc.drawText(w / 2, capY(Graphics.FONT_XTINY, GRID_Y + 9 + i * 16), Graphics.FONT_XTINY, msgs[i], Graphics.TEXT_JUSTIFY_CENTER);
             }
             dc.setColor(TEXT_GREY, Graphics.COLOR_TRANSPARENT);
             if (!waitingPeer) { dc.drawText(w / 2, capY(Graphics.FONT_XTINY, GRID_Y + 61), Graphics.FONT_XTINY, Tr.t("- START -"), Graphics.TEXT_JUSTIFY_CENTER); }
@@ -856,7 +854,7 @@ class BattleView extends WatchUi.View {
             dc.fillRoundedRectangle(w / 2 - 44, GRID_Y + 62, 88, 18, 6);
             dc.setColor(UI_INK, Graphics.COLOR_TRANSPARENT);
             dc.drawRoundedRectangle(w / 2 - 44, GRID_Y + 62, 88, 18, 6);
-            dc.drawText(w / 2, GRID_Y + 62, Graphics.FONT_XTINY, Tr.t("BACK"), Graphics.TEXT_JUSTIFY_CENTER);
+            dc.drawText(w / 2, capY(Graphics.FONT_XTINY, GRID_Y + 71), Graphics.FONT_XTINY, Tr.t("BACK"), Graphics.TEXT_JUSTIFY_CENTER);
         }
     }
 

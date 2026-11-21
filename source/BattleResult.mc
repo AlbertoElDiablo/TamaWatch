@@ -14,9 +14,10 @@ class BattleResultView extends WatchUi.View {
 
     const INK = 0x000055;
     const FRAME = 0xAAAAFF;
-    const FW = 90;
-    const FH = 84;
-    const FY = 70;
+    const FW = 84;        // frames a little smaller than the summary page's: room below for every line
+    const FH = 70;
+    const FY = 68;
+    const GAP = 18;       // half the room between the frames, for VS
 
     var lead;             // who stands in the left frame: your partner when it fought (its EXP, level
     var leadArt;          // and HP are the lines below), else the last one of yours on the field
@@ -54,18 +55,18 @@ class BattleResultView extends WatchUi.View {
         dc.drawText(cx, capY(Graphics.FONT_XTINY, 59), Graphics.FONT_XTINY, Fit.trim(dc, Tr.t("vs ") + who, 190, Graphics.FONT_XTINY), Graphics.TEXT_JUSTIFY_CENTER);
 
         // the two frames and VS
-        var lx = cx - 12 - FW;
-        var rx = cx + 12;
+        var lx = cx - GAP - FW;
+        var rx = cx + GAP;
         frame(dc, lx, lead, leadArt);
         frame(dc, rx, b.foe, b.art[1]);
         dc.setColor(0xFF5500, Graphics.COLOR_TRANSPARENT);
         dc.drawText(cx, capY(Graphics.FONT_SMALL, FY + FH / 2), Graphics.FONT_SMALL, Tr.t("VS"), Graphics.TEXT_JUSTIFY_CENTER);
 
         // names under them, then the team dots when a side had more than one
-        var ny = FY + FH + 10;
+        var ny = FY + FH + 9;
         dc.setColor(INK, Graphics.COLOR_TRANSPARENT);
-        dc.drawText(lx + FW / 2, capY(Graphics.FONT_XTINY, ny), Graphics.FONT_XTINY, Fit.trim(dc, lead.name, FW + 20, Graphics.FONT_XTINY), Graphics.TEXT_JUSTIFY_CENTER);
-        dc.drawText(rx + FW / 2, capY(Graphics.FONT_XTINY, ny), Graphics.FONT_XTINY, Fit.trim(dc, b.foe.name, FW + 20, Graphics.FONT_XTINY), Graphics.TEXT_JUSTIFY_CENTER);
+        dc.drawText(lx + FW / 2, capY(Graphics.FONT_XTINY, ny), Graphics.FONT_XTINY, Fit.trim(dc, lead.name, FW + GAP, Graphics.FONT_XTINY), Graphics.TEXT_JUSTIFY_CENTER);
+        dc.drawText(rx + FW / 2, capY(Graphics.FONT_XTINY, ny), Graphics.FONT_XTINY, Fit.trim(dc, b.foe.name, FW + GAP, Graphics.FONT_XTINY), Graphics.TEXT_JUSTIFY_CENTER);
         var y = ny + 12;
         if (mine.size() > 1 || theirs.size() > 1) {
             dots(dc, lx + FW / 2, y + 4, mine);
