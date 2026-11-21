@@ -116,6 +116,7 @@ class PetView extends WatchUi.View {
                !model.evolving() && oneShot < 0;
     }
     var leaving = false;    // BACK on the language screen: close the app
+    var catchShown = false; // "Catching up..." already on screen
 
     function tick() {
         frame += 1;
@@ -181,7 +182,9 @@ class PetView extends WatchUi.View {
             fi = 0;
             wait = 5000;
         }
-        WatchUi.requestUpdate();
+        // replaying the closed time: "Catching up..." is drawn once, the time goes to the replay
+        if (!model.catchingUp || !catchShown) { WatchUi.requestUpdate(); }
+        catchShown = model.catchingUp;
         schedule(wait);
     }
 
@@ -496,6 +499,18 @@ class PetView extends WatchUi.View {
         var now = System.getTimer();
         if (promptWas == null || !promptWas.equals(p)) { promptWas = p; promptAt = now; }
         return now - promptAt < 3000 ? p : null;
+    }
+
+    // What the prompt on screen right now offers (a menu entry's id), or null when none shows.
+    function promptOnScreen() {
+        if (model.toastText() != null || promptShown() == null) { return null; }
+        if (model.wantEvolveButton()) { return :evolve; }
+        if (model.wantFarewellButton()) { return :farewell; }
+        if (model.canRunawayNow()) { return :runaway; }
+        if (model.learnOffer() != 0) { return :learn; }
+        if (model.waiting != null) { return :room; }
+        if (model.canAct() && Extra.rivalReady(model)) { return :rival; }
+        return null;
     }
 
     function promptText() {

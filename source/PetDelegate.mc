@@ -96,6 +96,19 @@ class PetDelegate extends WatchUi.BehaviorDelegate {
     function onMenu() {
         view.wake();
         if (model.ceremony != model.CER_NONE) { return true; }
+        // a prompt on screen ("Ready to evolve! Hold UP"...): straight to what it offers
+        var id = view.promptOnScreen();
+        if (id != null) {
+            var md = new MainMenuDelegate(model, view);
+            if (id != :room) {
+                // (the rest replace the menu when they open: one goes underneath, unseen, so they
+                // come back home)
+                var mp = menuPanel();
+                WatchUi.pushView(mp[0], mp[1], WatchUi.SLIDE_IMMEDIATE);
+            }
+            md.selectId(id);
+            return true;
+        }
         var p = menuPanel();
         WatchUi.pushView(p[0], p[1], WatchUi.SLIDE_UP);
         return true;

@@ -103,7 +103,10 @@ class MiniGameView extends WatchUi.View {
         if (mode == SPRINT) { sprint = WatchUi.loadResource(Rez.Drawables.sprint); }
         if (mode == BAG) { gym = WatchUi.loadResource(Rez.Drawables.gym); }   // loaded once, here: never mid-game
         timer = Ticker.take(0);                   // (a reused timer: see Ticker)
-        Ticker.t[0].start(method(:tick), 50, true);
+        // the bag's room is a full-screen picture: 12 frames a second leave the watch time to read
+        // START on the bigger screens (the fenix 7X); the others keep 20
+        Ticker.t[0].start(method(:tick), mode == BAG ? 80 : 50, true);
+        started = false;
     }
 
     function onHide() {
@@ -118,8 +121,12 @@ class MiniGameView extends WatchUi.View {
     function rnd(n) { return Math.rand().abs() % n; }
     function elapsed() { return System.getTimer() - t0; }
 
+    var started = true;   // the clock runs from the first frame on screen (loading the room takes no game time)
+    var keyAt = -1000;    // START read as a key press (onSelect then skips the same press)
+
     function tick() as Void {
         var now = System.getTimer();
+        if (!started) { t0 = now; last = now; stAt = now; nextOrbAt = now + 800; return; }
         var dt = now - last;
         last = now;
         if (!done) {
@@ -506,6 +513,7 @@ class MiniGameView extends WatchUi.View {
     const INK = 0x000055;
 
     function onUpdate(dc) {
+        if (!started) { started = true; WatchUi.requestUpdate(); }
 
         dc = Scr.wrap(dc);              // any screen size: see Sdc.mc
         var w = dc.getWidth();
@@ -886,9 +894,20 @@ class MiniGameDelegate extends WatchUi.BehaviorDelegate {
         v = view;
     }
 
+    // START read the moment it goes down (onSelect comes on its release on some watches, and is
+    // late or lost while the screen is busy); onSelect then skips that same press
+    function onKeyPressed(evt) {
+        if (evt.getKey() == WatchUi.KEY_ENTER && !v.done && v.mode == v.BAG) {
+            v.keyAt = System.getTimer();
+            v.bagPress();
+            return true;
+        }
+        return false;
+    }
+
     function onSelect() {
         if (v.done) { WatchUi.popView(WatchUi.SLIDE_DOWN); return true; }
-        if (v.mode == v.BAG) { v.bagPress(); }
+        if (v.mode == v.BAG) { if (System.getTimer() - v.keyAt > 500) { v.bagPress(); } }
         else if (v.mode == v.SPRINT) { v.sprintPress(); }
         else if (v.mode == v.BRACE) { v.hop(); }
         return true;

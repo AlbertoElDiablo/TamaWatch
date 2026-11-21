@@ -42,13 +42,12 @@ module Hp {
 
     // After a training game: some HP back and, now and then (1 in 6), one piece of fruit found
     // on the way: 0 apple, 1 blue berry, 2 orange; -1 nothing this time.
-    // Plenty: with more than 15 pieces of fruit in the bag (apples, blue berries, oranges), each
-    // new one only comes 15 times in however many you hold (30 held: half of them, 60: a quarter),
-    // from every source (gifts, games, steps, workouts). True: this one comes.
+    // The bag holds at most 15 pieces of fruit in all (apples, blue berries, oranges), from every
+    // source (gifts, games, steps, workouts, battles): none comes while it holds 15 (more, kept from
+    // before, stay until eaten). True: this one comes.
     const PLENTY = 15;
     function keep(m) {
-        var held = m.bag[0] + m.bag[1] + m.bag[2];
-        return held < PLENTY || m.rnd(held) < PLENTY;
+        return m.bag[0] + m.bag[1] + m.bag[2] < PLENTY;
     }
 
     function afterGame(m) {

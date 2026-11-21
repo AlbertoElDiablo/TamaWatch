@@ -2,15 +2,16 @@ import Toybox.Graphics;
 import Toybox.Lang;
 import Toybox.WatchUi;
 
-// TamaPoke's gym screens, scaled 466 -> 280:
-//   stage 0 "GYMS": the region row with its badge tally, and LINK BATTLE (TamaPoke's LAN BATTLE)
+// TamaPoke's gym screens, scaled 466 -> 280. GYMS in the menu opens stage 1 straight away (one
+// region a build; LINK BATTLE has its own menu entry):
+//   stage 0 "GYMS": the region row with its badge tally, and LINK BATTLE (no longer shown)
 //   stage 1 "KANTO GYMS": the EASY / HARD pill and one row per trainer (name, town or LOCKED,
 //   "Lv.12 x2" = top level x team size); a trainer opens once the one before is beaten.
 class GymView extends WatchUi.View {
     var model;
     var petView;
-    var stage = 0;
-    var sel = 0;          // stage 0: 0 region, 1 link; stage 1: 0 pill, 1.. trainers
+    var stage = 1;
+    var sel = 1;          // stage 0: 0 region, 1 link; stage 1: 0 pill, 1.. trainers
     var top = 0;
     var hard = false;
     var trainers = null;
@@ -152,8 +153,7 @@ class GymDelegate2 extends WatchUi.BehaviorDelegate {
     }
 
     function onBack() {
-        if (v.stage == 1) { v.stage = 0; v.sel = 0; WatchUi.requestUpdate(); return true; }
-        WatchUi.popView(WatchUi.SLIDE_DOWN);
+        WatchUi.popView(WatchUi.SLIDE_DOWN);       // back to the menu
         return true;
     }
 }

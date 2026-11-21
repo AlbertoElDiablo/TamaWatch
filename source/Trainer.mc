@@ -547,6 +547,7 @@ class TeamDelegate2 extends WatchUi.BehaviorDelegate {
         }
         var rows = [[Tr.t("SUMMARY"), :sum, 0, -1], [Tr.t("MAKE PARTNER"), :partner, 0, -1],
                     [Tr.t("TO POKÉBOX"), :toBox, 0, -1], [Tr.t("RELEASE"), :release, 1, -1]];
+        if (memberCanEvolve(t[v.sel])) { rows = [[Tr.t("EVOLVE!"), :evolve, 0, -1]].addAll(rows); }
         var pv = new PanelView(v.model.memberName(t[v.sel]).toUpper(), rows, Tr.t("The partner gets full EXP, the team 25%"));
         pv.tr = true;
         WatchUi.pushView(pv, new PanelDelegate(pv, new TeamMemberAction(v, v.sel - 1)), WatchUi.SLIDE_UP);
@@ -755,7 +756,9 @@ class TeamMemberAction {
             WatchUi.switchToView(sv, new SummaryDelegate(sv), WatchUi.SLIDE_LEFT);
             return;
         }
-        if (id == :partner) {
+        if (id == :evolve) {
+            evolveMember(m, idx);
+        } else if (id == :partner) {
             makePartner(m, idx);
             tv.sel = 0;
         } else if (id == :toBox) {

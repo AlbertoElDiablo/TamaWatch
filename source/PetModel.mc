@@ -17,9 +17,16 @@ import Toybox.WatchUi;
 module Lvl {
     const MAX = 100;
     function expFor(l) { return l <= 1 ? 0 : l * l * l; }
+    // (the last answer kept: the replay of closed time asks it several times a minute, for an EXP
+    // that seldom changes)
+    var lastE = -1;
+    var lastL = 1;
     function levelFor(e) {
+        if (e == lastE) { return lastL; }
         var l = 1;
-        while (l < MAX && expFor(l + 1) <= e) { l++; }
+        while (l < MAX && (l + 1) * (l + 1) * (l + 1) <= e) { l++; }
+        lastE = e;
+        lastL = l;
         return l;
     }
 }
@@ -104,7 +111,7 @@ class PetModel {
     const FAREWELL_AGE_MIN = 4320;          // 3 days in final form
     const DEF_TRAIN_TICKS = 360;            // 6 calm hours: +1 DEF
     const MAX_CATCHUP_MIN = 20160;          // 2 weeks
-    const CHUNK = 40;                       // minutes replayed per update call at most
+    const CHUNK = 240;                      // minutes replayed per update call at most
     const CHUNK_MS = 40;                    // ...and no longer than this (the watchdog ends long calls)
     const HEART_MS = 1500;
     const EAT_ANIM_MS = 2500;
@@ -521,9 +528,9 @@ class PetModel {
             var got = 0;
             for (var k = 0; k < 2; k++) {
                 var item = rnd(3);
-                if (k == 0 || Hp.keep(self)) { got += 1; if (bag[item] < 99) { bag[item] += 1; } }   // (one always)
+                if (Hp.keep(self)) { got += 1; bag[item] += 1; }     // (none once the bag holds 15)
             }
-            say(got == 2 ? Tr.t("Daily gift: 2 fruit!") : Tr.t("Daily gift: 1 fruit!"), 5000);
+            if (got > 0) { say(got == 2 ? Tr.t("Daily gift: 2 fruit!") : Tr.t("Daily gift: 1 fruit!"), 5000); }
             save();
         }
         // new steps were paid (StepBank saves at once): save where they were read up to, or the
@@ -777,15 +784,7 @@ class PetModel {
     function evolve() {
         if (!canEvolveNow()) { return; }
         prevDex = dex;
-        var next = Dex.evolvesTo(dex);
-        if (dex == Dex.EEVEE) {    // toward a branch you are still missing
-            var fresh = [];
-            for (var i = 0; i < Dex.EEVEE_EVOS.size(); i++) {
-                if (isRegistered(Dex.EEVEE_EVOS[i]) == 0) { fresh.add(Dex.EEVEE_EVOS[i]); }
-            }
-            next = fresh.size() > 0 ? fresh[rnd(fresh.size())] : Dex.EEVEE_EVOS[rnd(3)];
-        }
-        dex = next;
+        dex = $.nextForm(self, dex);
         registerSpecies(dex);
         lastLearnLevel = level() - 1;   // the new form may gate a move at this very level
         checkLearnGates();
@@ -986,14 +985,15 @@ class PetModel {
     function checkMedals() {
         if (isEgg()) { return; }
         var before = medals;
-        if (level() >= 10) { medals |= MED_LV10; }
-        if (level() >= 25) { medals |= MED_LV25; }
-        if (level() >= 50) { medals |= MED_LV50; }
+        var lv = level();
+        if (lv >= 10) { medals |= MED_LV10; }
+        if (lv >= 25) { medals |= MED_LV25; }
+        if (lv >= 50) { medals |= MED_LV50; }
         if (berryKnown) { medals |= MED_BERRY; }
         if (streak >= 1) { medals |= MED_STREAK7; }        // a week's intensity goal met
         if (bond >= 100) { medals |= MED_BOND; }
         if (Dex.evolvesTo(dex) == 0) { medals |= MED_FINAL; }
-        if (weight == 0 && level() >= 5 && careMistakes == 0) { medals |= MED_FIT; }
+        if (weight == 0 && lv >= 5 && careMistakes == 0) { medals |= MED_FIT; }
         var gained = medals & ~before;
         for (var i = 0; i < 8; i++) {
             if ((gained >> i) & 1) {
@@ -1240,10 +1240,11 @@ class PetModel {
     // Fruit into the bag (0 apple, 1 blue berry, 2 orange, 3 candy). A species' favourite is
     // dex % 3 of the first three, so the ones that loved the green berry now love the orange.
     function giveFruit(item, n) {
-        if (item < 3) {                                  // fruit: less of it when the bag is full (Hp.keep)
+        if (item < 3) {                                  // fruit: only up to 15 in the bag (Hp.keep)
             var k = 0;
-            for (var i = 0; i < n; i++) { if (Hp.keep(self)) { k += 1; } }
-            n = k;
+            for (var i = 0; i < n; i++) { if (Hp.keep(self)) { k += 1; bag[item] += 1; } }
+            repBag[item] += k;
+            return;
         }
         bag[item] += n;
         if (bag[item] > 99) { bag[item] = 99; }
@@ -1702,4 +1703,32 @@ class PetModel {
         if (!isEgg() && moveCount() == 0) { lastLearnLevel = 0; checkLearnGates(); }
         if (ceremony != CER_NONE) { newEgg(); }   // the app closed mid-goodbye: finish it
     }
+}
+
+// What species n becomes (Eevee: toward a branch you are still missing). Outside PetModel: the
+// class is at Connect IQ's limit of members.
+function nextForm(m, n) {
+    if (n == Dex.EEVEE) {
+        var fresh = [];
+        for (var i = 0; i < Dex.EEVEE_EVOS.size(); i++) {
+            if (m.isRegistered(Dex.EEVEE_EVOS[i]) == 0) { fresh.add(Dex.EEVEE_EVOS[i]); }
+        }
+        return fresh.size() > 0 ? fresh[m.rnd(fresh.size())] : Dex.EEVEE_EVOS[m.rnd(Dex.EEVEE_EVOS.size())];
+    }
+    return Dex.evolvesTo(n);
+}
+
+// A team member evolves too, once at its level (the TEAM screen offers it).
+function memberCanEvolve(mm) { return Dex.evolvesTo(mm[0]) != 0 && mm[3] >= Dex.evolveLevel(mm[0]); }
+
+function evolveMember(m, idx) {
+    if (idx < 0 || idx >= m.party.size() || !memberCanEvolve(m.party[idx])) { return; }
+    var mm = m.party[idx];
+    var was = SpriteIndex.name(mm[0]);
+    mm[0] = nextForm(m, mm[0]);
+    m.registerSpecies(mm[0]);
+    Sfx.vibe(Sfx.EVOLVE);
+    m.say(was + Tr.t(" evolved into ") + SpriteIndex.name(mm[0]) + "!", 5000);
+    m.checkMedals();
+    m.save();
 }
