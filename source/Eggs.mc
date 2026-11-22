@@ -2,8 +2,8 @@ import Toybox.Application.Storage;
 import Toybox.Lang;
 import Toybox.Time;
 
-// Bonus eggs from walking: every 15,000 steps earns an egg, at most 2 in any 7 days. Steps
-// carry over for as long as it takes to reach 15,000; but while 2 eggs were already earned in
+// Bonus eggs from walking: every 15,000 steps earns an egg, at most 5 in any 7 days. Steps
+// carry over for as long as it takes to reach 15,000; but while 5 eggs were already earned in
 // the last 7 days, steps don't count (nothing piles up past the limit). An egg
 // then hatches by walking its own steps (1,000 common, 2,000 rare, 3,000 legendary) and the
 // newcomer joins the team, or the Pokébox when the team is full; your partner stays. Each step
@@ -11,7 +11,7 @@ import Toybox.Time;
 // Kept apart from PetModel (which is at Connect IQ's member limit), saved under "eggs".
 module Incubator {
     const STEPS_PER_EGG = 15000;
-    const MAX_PER_WEEK = 2;
+    const MAX_PER_WEEK = 5;
     const WEEK = 604800;                    // seconds
     const HATCH_STEPS = [0, 1000, 2000, 3000];
 
@@ -67,7 +67,7 @@ module Incubator {
             // made when you open the app, so you see it first; only steps after that hatch it
             queue.add([n, m.rnd(shinyOdds) == 0, HATCH_STEPS[Dex.rarity(n)], total]);
             times.add(Time.now().value());
-            if (recent() >= MAX_PER_WEEK) { bank = 0; }       // the week's second egg: nothing left over
+            if (recent() >= MAX_PER_WEEK) { bank = 0; }       // the week's last egg: nothing left over
             repFound++;
             m.say(Tr.t("You found an egg! Walk to hatch it"), 4000);
             Sfx.vibe(Sfx.HATCH);

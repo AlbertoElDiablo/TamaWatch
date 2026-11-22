@@ -162,13 +162,14 @@ class SetupView extends WatchUi.View {
             dc.drawText(cx, 154, f, Tr.t("Change it later in Settings"), Graphics.TEXT_JUSTIFY_CENTER);
             drawOk(dc, cx, 186, "OK");
         } else {
-            if (kids != null) { drawKid(dc, kids, gender, cx - KID_W / 2, 58); }
+            // (a little lower than the title's line: on a 260-pixel screen its big letters reach the cap)
+            if (kids != null) { drawKid(dc, kids, gender, cx - KID_W / 2, 69); }
             dc.setColor(0x000000, Graphics.COLOR_TRANSPARENT);
-            dc.drawText(cx, 124, UiFont.small(), Tr.t("Hi, ") + name + "!", Graphics.TEXT_JUSTIFY_CENTER);
+            dc.drawText(cx, 133, UiFont.small(), Tr.t("Hi, ") + name + "!", Graphics.TEXT_JUSTIFY_CENTER);
             // wrapped to the screen: some languages need three lines
             var endY = paragraph(dc, Tr.t("Joy stays full while you") + " " + Tr.t("keep up ") + perWeek +
-                      (perWeek == 1 ? Tr.t(" training") : Tr.t(" trainings")) + Tr.t(" a week"), 156, f);
-            drawOk(dc, cx, endY + 6 > 206 ? endY + 6 : 206, model.starterPick ? Tr.t("PICK PARTNER") : Tr.t("START"));
+                      (perWeek == 1 ? Tr.t(" training") : Tr.t(" trainings")) + Tr.t(" a week"), 163, f);
+            drawOk(dc, cx, endY + 6 > 210 ? endY + 6 : 210, model.starterPick ? Tr.t("PICK PARTNER") : Tr.t("START"));
         }
     }
 
@@ -700,16 +701,20 @@ class SummaryView extends WatchUi.View {
             dc.drawText(cx, 50, f, Tr.t("MOVES"), Graphics.TEXT_JUSTIFY_CENTER);
             var mv = m[11];
             for (var i = 0; i < 4; i++) {
-                var y = 72 + i * 30;
+                var y = 68 + i * 27;
                 var sp = [Fit.COL_X, Fit.COL_W];
                 dc.setColor(mv[i] != 0 ? 0xFFFFAA : 0xFFFFFF, Graphics.COLOR_TRANSPARENT);
-                dc.fillRoundedRectangle(sp[0], y, sp[1], 26, 8);
+                dc.fillRoundedRectangle(sp[0], y, sp[1], 24, 8);
                 dc.setColor(0x000000, Graphics.COLOR_TRANSPARENT);
-                dc.drawRoundedRectangle(sp[0], y, sp[1], 26, 8);
-                centerText(dc, sp[0], y, sp[1], 26, UiFont.small(), mv[i] != 0 ? Moves.name(mv[i]) : "-");
+                dc.drawRoundedRectangle(sp[0], y, sp[1], 24, 8);
+                centerText(dc, sp[0], y, sp[1], 24, UiFont.small(), mv[i] != 0 ? Moves.name(mv[i]) : "-");
             }
             dc.setColor(0x000055, Graphics.COLOR_TRANSPARENT);
-            dc.drawText(cx, 196, f, Tr.t("TRAINED  ATK ") + m[8] + Tr.t("  DEF ") + m[9] + Tr.t("  SPD ") + m[10], Graphics.TEXT_JUSTIFY_CENTER);
+            // trained points (each adds 1 to its stat); your partner's with how far the next one is
+            // (the TRAINING panel's bars: 2.72 = 2 points and 72% of the next)
+            dc.drawText(cx, capY(Graphics.FONT_XTINY, 186), Graphics.FONT_XTINY, Tr.t("TRAINED"), Graphics.TEXT_JUSTIFY_CENTER);
+            var trl = Tr.t("ATK") + " " + trPts(0, m[8]) + "  " + Tr.t("DEF") + " " + trPts(1, m[9]) + "  " + Tr.t("SPD") + " " + trPts(2, m[10]);
+            dc.drawText(cx, capY(Graphics.FONT_XTINY, 203), Graphics.FONT_XTINY, Fit.trim(dc, trl, 220, Graphics.FONT_XTINY), Graphics.TEXT_JUSTIFY_CENTER);
             dc.setColor(accent, Graphics.COLOR_TRANSPARENT);
             dc.drawText(cx, 216, f, Tr.t("IV  ") + m[4] + " / " + m[5] + " / " + m[6] + " / " + m[7], Graphics.TEXT_JUSTIFY_CENTER);
         }
@@ -720,6 +725,13 @@ class SummaryView extends WatchUi.View {
             var dx = cx - (np - 1) * 5 + i * 10;
             if (i == page) { dc.fillCircle(dx, 246, 3); } else { dc.drawCircle(dx, 246, 3); }
         }
+    }
+
+    function trPts(which, n) {
+        if (!isPet) { return n.toString(); }
+        var p = Extra.progress(which, n);
+        if (p > 99) { p = 99; }
+        return n + "." + (p < 10 ? "0" : "") + p;
     }
 
     // your partner has its care record and medals too; the others, stats and moves

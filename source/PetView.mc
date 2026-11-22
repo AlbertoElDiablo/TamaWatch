@@ -79,7 +79,7 @@ class PetView extends WatchUi.View {
 
     function onShow() {
         wake();
-        promptWas = null;                   // its prompt shows again for 3 s
+        promptWas = null;                   // its prompt shows again straight away
         Sfx.screenOk = true;                // vibration is allowed on the main screen
         model.screenOff = true;     // replay the closed time as "screen off", then wake
         model.update();             // the first slice now, so the first frame knows if it is catching up
@@ -401,8 +401,8 @@ class PetView extends WatchUi.View {
         if (model.sleeping && !model.isEgg()) { drawSnore(dc); }
         if (model.bathing()) { drawBubbles(dc, cx); }
 
-        var msg = model.toastText();
-        if (msg == null) { msg = promptShown(); }
+        var msg = promptShown();            // (called first: its clock waits while a message shows)
+        if (model.toastText() != null) { msg = model.toastText(); }
         if (msg != null) { drawBanner(dc, cx, msg); }
 
         drawDock(dc, w, h);
@@ -489,8 +489,9 @@ class PetView extends WatchUi.View {
     }
 
     // A decision waiting for you: opened from the menu (hold UP).
-    // A prompt shows for 3 s when it comes up (and again each time the home screen comes back);
-    // what it offers stays there behind Hold UP.
+    // A prompt shows for 4 s when it comes up, and again every 12 s while it applies (and each
+    // time the home screen comes back); its clock only starts once no other message is showing,
+    // so one can't hide it. What it offers stays in the menu (hold UP).
     var promptWas = null;
     var promptAt = 0;
     function promptShown() {
@@ -498,7 +499,8 @@ class PetView extends WatchUi.View {
         if (p == null) { promptWas = null; return null; }
         var now = System.getTimer();
         if (promptWas == null || !promptWas.equals(p)) { promptWas = p; promptAt = now; }
-        return now - promptAt < 3000 ? p : null;
+        if (model.toastText() != null) { promptAt = now; return null; }
+        return (now - promptAt) % 12000 < 4000 ? p : null;
     }
 
     // What the prompt on screen right now offers (a menu entry's id), or null when none shows.

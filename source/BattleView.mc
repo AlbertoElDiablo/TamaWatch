@@ -54,6 +54,7 @@ class BattleView extends WatchUi.View {
     var squad = [];         // your pet first, then the party
     var squadAt = 0;
     var pendingYouSwap = false;
+    var forced = false;     // one of yours fainted: the switch grid picks who goes next
     const BADGE_NAMES = ["Cairn", "Tide", "Spark", "Sprout", "Spore", "Mind", "Ember", "Quake"];
 
     // A wild foe (trainerIdx -1, foeDex/foeLvl) or a trainer from trainers.json.
@@ -602,7 +603,13 @@ class BattleView extends WatchUi.View {
 
     // Who fainted, who comes in next, and whether it is over.
     function afterFaints() {
-        if (foe.fainted()) { msgs.add(foe.name + Tr.t(" fainted!")); }
+        if (foe.fainted()) {
+            msgs.add(foe.name + Tr.t(" fainted!"));
+            // what that knockout earned the one of yours on the field (as awardExp will pay it)
+            if (!model.isEgg() && !you.fainted()) {
+                msgs.add(you.name + Tr.t(" gained ") + koWorth() + Tr.t(" EXP!"));
+            }
+        }
         if (you.fainted()) { msgs.add(you.name + Tr.t(" fainted!")); }
         var foeLeft = foe.fainted() && (lobby != null ? nextAliveFoe() >= 0 : (trainer >= 0 && foeAt + 1 < team.size()));
         var youLeft = you.fainted() && nextAlive() >= 0;
@@ -622,7 +629,30 @@ class BattleView extends WatchUi.View {
         } else {
             pendingSwap = foeLeft;
             pendingYouSwap = youLeft;
+            if (youLeft && aliveOthers() > 1) { msgs.add(Tr.t("Choose who goes next!")); }
         }
+    }
+
+    // The EXP the foe on the field pays when it faints: its worth (foeValue), a tenth for your
+    // partner past the day's full-EXP wild wins (PetModel.battleGain).
+    // PetModel.WILD_FULL_PER_DAY (read through the model it counts as one of PetModel's members,
+    // which is at Connect IQ's limit)
+    const WILD_FULL = 5;
+    function koWorth() {
+        var n = foeValue(foe);
+        var pet = squadAt < squadParty.size() && squadParty[squadAt] < 0;
+        if (pet && lobby == null && trainer < 0) {
+            var wins = model.wildDay == model.today() ? model.wildWins : 0;
+            if (wins + 1 > WILD_FULL) { n = n / 10; }
+        }
+        return n < 1 ? 1 : n;
+    }
+
+    // yours still standing, the one on the field left out
+    function aliveOthers() {
+        var n = 0;
+        for (var i = 0; i < squad.size(); i++) { if (i != squadAt && !squad[i].fainted()) { n++; } }
+        return n;
     }
 
     const AIL_HIT = ["", " is paralysed!", " was burned!", " was poisoned!", " fell asleep!", " was frozen solid!", " became confused!"];
@@ -758,7 +788,19 @@ class BattleView extends WatchUi.View {
         stepAt = -1;
         msgs = [];
         if (pendingSwap) { swapFoe(); return false; }
-        if (pendingYouSwap) { pendingYouSwap = false; bringIn(nextAlive(), false); return false; }
+        if (pendingYouSwap) {
+            pendingYouSwap = false;
+            if (aliveOthers() > 1) {
+                // you choose who goes next (the switch grid; BACK can't skip it)
+                forced = true;
+                menu = MENU_SWITCH;
+                sel = 0;
+                while (sel + 1 < squad.size() - 1 && squad[switchIdx(sel)].fainted()) { sel++; }
+                return false;
+            }
+            bringIn(nextAlive(), false);
+            return false;
+        }
         if (pendingFoeIdx >= 0) {
             var fi = pendingFoeIdx;
             pendingFoeIdx = -1;
@@ -788,6 +830,9 @@ class BattleView extends WatchUi.View {
     const CELL_H = 26;
     const GRID_X = 44;      // the 2x2 grid's bottom corners stay inside the circle
     const GRID_Y = 158;
+
+    // the squad index of switch-grid entry i (the one on the field is left out)
+    function switchIdx(i) { return i + (i >= squadAt ? 1 : 0); }
 
     function cellX(i) { return GRID_X + (i % 2) * (CELL_W + 4); }
     function cellY(i) { return GRID_Y + (i / 2) * (CELL_H + 4); }
@@ -823,11 +868,12 @@ class BattleView extends WatchUi.View {
             dc.setColor(TEXT_GREY, Graphics.COLOR_TRANSPARENT);
             if (!waitingPeer) { dc.drawText(w / 2, capY(Graphics.FONT_XTINY, GRID_Y + 61), Graphics.FONT_XTINY, Tr.t("- START -"), Graphics.TEXT_JUSTIFY_CENTER); }
         } else if (menu == MENU_SWITCH) {
+            var p0 = sel / 4 * 4;               // 5 others: a second page holds the last
             for (var i = 0; i < 4; i++) {
-                var mi = i + (i >= squadAt ? 1 : 0);
+                var mi = switchIdx(p0 + i);
                 if (mi < squad.size()) {
                     var c = squad[mi];
-                    cell(dc, i, fit(dc, c.name, CELL_W - 30) + " " + c.hp, sel == i, c.fainted() ? UI_TRACK : UI_BG_DAY, c.fainted());
+                    cell(dc, i, fit(dc, c.name, CELL_W - 30) + " " + c.hp, sel == p0 + i, c.fainted() ? UI_TRACK : UI_BG_DAY, c.fainted());
                 } else {
                     cell(dc, i, "", false, UI_TRACK, true);
                 }
@@ -1095,6 +1141,7 @@ class BattleDelegate extends WatchUi.BehaviorDelegate {
 
     function cells() {
         if (v.menu == v.MENU_RUN) { return 2; }
+        if (v.menu == v.MENU_SWITCH && v.squad.size() > 5) { return v.squad.size() - 1; }
         return 4;
     }
 
@@ -1127,11 +1174,12 @@ class BattleDelegate extends WatchUi.BehaviorDelegate {
         } else if (v.menu == v.MENU_BAG) {
             if (v.sel == 3) { v.menu = v.MENU_MAIN; v.sel = 1; } else { v.useItem(v.sel); }
         } else if (v.menu == v.MENU_SWITCH) {
-            var mi = v.sel + (v.sel >= v.squadAt ? 1 : 0);
+            var mi = v.switchIdx(v.sel);
             if (mi < v.squad.size() && !v.squad[mi].fainted()) {
                 v.menu = v.MENU_MAIN;
                 v.sel = 0;
-                if (v.lobby != null) { v.linkAct("S", mi); } else { v.bringIn(mi, true); }
+                if (v.forced) { v.forced = false; v.bringIn(mi, false); }      // free: the last one fainted
+                else if (v.lobby != null) { v.linkAct("S", mi); } else { v.bringIn(mi, true); }
             }
         } else if (v.menu == v.MENU_RUN) {
             if (v.sel == 0) { leave(); return true; }
@@ -1145,7 +1193,7 @@ class BattleDelegate extends WatchUi.BehaviorDelegate {
     }
 
     function onBack() {
-        if (v.msgs.size() > 0) { return true; }
+        if (v.msgs.size() > 0 || v.forced) { return true; }
         if (v.menu == v.MENU_MAIN) { v.menu = v.MENU_RUN; v.sel = 1; }
         else { v.menu = v.MENU_MAIN; v.sel = 0; }
         WatchUi.requestUpdate();

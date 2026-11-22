@@ -349,7 +349,7 @@ function evolvedAt(dex, lv) {
 // The rival (FireRed's): leads with the starter strong against yours (grass, fire, water: the
 // next one), and brings more as you level up and earn badges, all around your level; the others
 // come from the region, always the same ones for you (seeded by when you started).
-const RIVAL_NAME = "KAI";
+const RIVAL_NAME = "XAVI";
 const RIVAL = 99;                // its trainer number in BattleView
 function rivalTeam(m) {
     var st = Dex.STARTERS;

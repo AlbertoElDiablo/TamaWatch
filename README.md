@@ -42,7 +42,7 @@ Captured from the Connect IQ simulator on a fēnix 6 Pro (its 64-colour screen).
   or the watch's sleep mode): asleep it doesn't get hungry, and no alerts are sent while you sleep
   or have Do Not Disturb on. Opening the app the first time each day gives 2 pieces of fruit. Feed it, bathe
   it, clean up after it.
-- **Eggs from walking.** Every 15,000 steps earn an egg (at most 2 a week); walk more to hatch it.
+- **Eggs from walking.** Every 15,000 steps earn an egg (at most 5 a week); walk more to hatch it.
   Each step counts once: while an egg waits, steps hatch it, and only later steps count toward the
   next egg. Steps from runs and walks count, even on days you don't open the app.
 - **A team and a Pokébox.** Your partner plus 5 in the team, the rest in the Pokébox. Only your
@@ -75,7 +75,7 @@ Captured from the Connect IQ simulator on a fēnix 6 Pro (its 64-colour screen).
 - **Natures, a bag and rematches.** Every creature has one of 25 natures (+10% to one stat, -10% to
   another). In battle, fruit from the BAG heals or cures (it takes the turn). Each creature that
   beats a foe earns its EXP. Beaten gym leaders come back stronger after two days, and a rival,
-  KAI, turns up every few days with a team that grows with you.
+  XAVI, turns up every few days with a team that grows with you.
 - **Slow and steady training, like VO2 max.** Every workout brings a stat's next point closer (a
   30-minute one about a quarter of a point at first), a good training game a quarter of that (4 a
   day count), gym wins some too; each point takes a little longer than the last, with no fixed

@@ -148,7 +148,7 @@ class PetService extends System.ServiceDelegate {
         return true;
     }
 
-    // A bonus egg's steps walked (15,000 since the last, while under 2 eggs in 7 days): tell the
+    // A bonus egg's steps walked (15,000 since the last, while under 5 eggs in 7 days): tell the
     // wearer once, if care alerts are on. The game adds the egg when it next opens.
     function eggReady(d) {
         if (d == null || d["alerts"] == false || !(Toybox has :ActivityMonitor)) { return false; }
@@ -161,7 +161,7 @@ class PetService extends System.ServiceDelegate {
         var now = Time.now().value();
         var recent = 0;
         for (var i = 0; i < times.size(); i++) { if (now - times[i] < 604800) { recent++; } }
-        if (recent >= 2) { return false; }
+        if (recent >= 5) { return false; }
         var info = ActivityMonitor.getInfo();
         if (info == null || info.steps == null) { return false; }
         var today = (now + System.getClockTime().timeZoneOffset) / 86400;
