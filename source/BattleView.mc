@@ -55,6 +55,7 @@ class BattleView extends WatchUi.View {
     var squadAt = 0;
     var pendingYouSwap = false;
     var forced = false;     // one of yours fainted: the switch grid picks who goes next
+    var replTurn = false;   // (link host) the next turn only brings in a fainted one's replacement
     const BADGE_NAMES = ["Cairn", "Tide", "Spark", "Sprout", "Spore", "Mind", "Ember", "Quake"];
 
     // A wild foe (trainerIdx -1, foeDex/foeLvl) or a trainer from trainers.json.
@@ -319,7 +320,9 @@ class BattleView extends WatchUi.View {
         } else if (mg != 0) {
             actStep(foe, you, mg);
         }
-        if (!you.fainted() && !foe.fainted()) {
+        var repl = replTurn;                    // only replacements came in: no chip damage
+        replTurn = false;
+        if (!repl && !you.fainted() && !foe.fainted()) {
             chipStep(you);
             chipStep(foe);
         }
@@ -580,7 +583,16 @@ class BattleView extends WatchUi.View {
         // battle EXP duel by duel (as it plays, on both watches of a link battle): a foe that
         // faints pays its whole worth to the one of yours on the field; one of yours that faints
         // gets a tenth of the worth of the foe that beat it
-        if (st[6] && koSeen.indexOf(foe) < 0) { koSeen.add(foe); credit(squadAt, foeValue(foe)); }
+        if (st[6] && koSeen.indexOf(foe) < 0) {
+            koSeen.add(foe);
+            credit(squadAt, foeValue(foe));
+            // a link battle's lines come from the host: each watch adds what its own one earned
+            // (to a copy: the host sends the step's lines on)
+            if (lobby != null && !model.isEgg() && !st[5]) {
+                msgs = msgs.slice(0, null);
+                msgs.add(you.name + Tr.t(" gained ") + koWorth() + Tr.t(" EXP!"));
+            }
+        }
         if (st[5] && downSeen.indexOf(you) < 0) { downSeen.add(you); credit(squadAt, foeValue(foe) / 10); }
     }
 
@@ -606,7 +618,7 @@ class BattleView extends WatchUi.View {
         if (foe.fainted()) {
             msgs.add(foe.name + Tr.t(" fainted!"));
             // what that knockout earned the one of yours on the field (as awardExp will pay it)
-            if (!model.isEgg() && !you.fainted()) {
+            if (!model.isEgg() && !you.fainted() && lobby == null) {
                 msgs.add(you.name + Tr.t(" gained ") + koWorth() + Tr.t(" EXP!"));
             }
         }
@@ -624,8 +636,11 @@ class BattleView extends WatchUi.View {
             msgs.add(Tr.t("You lost..."));
             savePetHp();
         } else if (lobby != null) {
-            pendingFoeIdx = foeLeft ? nextAliveFoe() : -1;   // each side's next one comes in
-            pendingYouIdx = youLeft ? nextAlive() : -1;
+            // each side's next one comes in: the only one left straight away, else its player
+            // chooses (-2), sending the pick as the next turn's action while the other waits
+            pendingFoeIdx = foeLeft ? (aliveFoeOthers() > 1 ? -2 : nextAliveFoe()) : -1;
+            pendingYouIdx = youLeft ? (aliveOthers() > 1 ? -2 : nextAlive()) : -1;
+            replTurn = pendingFoeIdx == -2 || pendingYouIdx == -2;
         } else {
             pendingSwap = foeLeft;
             pendingYouSwap = youLeft;
@@ -646,6 +661,13 @@ class BattleView extends WatchUi.View {
             if (wins + 1 > WILD_FULL) { n = n / 10; }
         }
         return n < 1 ? 1 : n;
+    }
+
+    // the link foe's still standing, the one on the field left out
+    function aliveFoeOthers() {
+        var n = 0;
+        for (var i = 0; i < foeSquad.size(); i++) { if (i != foeAt && !foeSquad[i].fainted()) { n++; } }
+        return n;
     }
 
     // yours still standing, the one on the field left out
@@ -813,6 +835,25 @@ class BattleView extends WatchUi.View {
             pendingYouIdx = -1;
             switchMine(yi);
             msgs = [Tr.t("Go, ") + you.name + "!"];
+            return false;
+        }
+        if (pendingYouIdx == -2) {                // link: yours fainted, you choose who goes next
+            pendingYouIdx = -3;
+            msgs = [Tr.t("Choose who goes next!")];
+            return false;
+        }
+        if (pendingYouIdx == -3) {
+            pendingYouIdx = -1;
+            pendingFoeIdx = -1;                   // (theirs, if they choose too, comes with their pick)
+            forced = true;
+            menu = MENU_SWITCH;
+            sel = 0;
+            while (sel + 1 < squad.size() - 1 && squad[switchIdx(sel)].fainted()) { sel++; }
+            return false;
+        }
+        if (pendingFoeIdx == -2) {                // link: they choose theirs; yours waits for it
+            pendingFoeIdx = -1;
+            linkAct("W", 0);
             return false;
         }
         return over;
@@ -1178,7 +1219,10 @@ class BattleDelegate extends WatchUi.BehaviorDelegate {
             if (mi < v.squad.size() && !v.squad[mi].fainted()) {
                 v.menu = v.MENU_MAIN;
                 v.sel = 0;
-                if (v.forced) { v.forced = false; v.bringIn(mi, false); }      // free: the last one fainted
+                if (v.forced) {                       // free: the last one fainted
+                    v.forced = false;
+                    if (v.lobby != null) { v.linkAct("S", mi); } else { v.bringIn(mi, false); }
+                }
                 else if (v.lobby != null) { v.linkAct("S", mi); } else { v.bringIn(mi, true); }
             }
         } else if (v.menu == v.MENU_RUN) {
