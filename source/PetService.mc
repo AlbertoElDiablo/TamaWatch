@@ -25,6 +25,7 @@ class PetService extends System.ServiceDelegate {
     (:notif)
     function notify(msg) {
         Notifications.showNotification("TamaWatch", msg, {
+            :body => msg,
             :actions => [{:label => GT.g(GT.BTN_OPEN), :data => 1}],
             :dismissPrevious => true});
     }
